@@ -1,4 +1,5 @@
 from silver_ai.core import guard
+
 #from silver_ai.rules import Rule
 
 # 1. Define a dummy rule (since we haven't written real ones yet)
