@@ -1,21 +1,72 @@
-from silver_ai.core import guard
+"""
+SilverAi Demo
+Run this script to see the library in action.
+"""
 
-#from silver_ai.rules import Rule
+from silver_ai.core import GuardViolationError, guard
+from silver_ai.rules import BatteryMin, MaxTemp, RequireConnectivity
 
-# 1. Define a dummy rule (since we haven't written real ones yet)
-class AlwaysFalse():
-    def check(self):
-        return False
-    def error_message(self):
-        return "Computer says no."
 
-# 2. Use the guard
-@guard(rules=[AlwaysFalse()])
-def launch_rocket():
-    print("🚀 Rocket Launched!")
+# Mock a hardware driver
+class HardwareDriver:
+    def move_to(self, zone):
+        print(f"ROBOT MOVING TO {zone}...")
 
-# 3. Run it
-if __name__ == "__main__":
-    print("Attempting launch...")
-    result = launch_rocket()
+
+driver = HardwareDriver()
+
+
+class IndustrialRobot:
+    def __init__(self, battery=100, temp=50, connection="WIFI"):
+        self.state = {"battery": battery, "temperature": temp, "connection": connection}
+        # Default Dry Run status
+        self._silver_dry_run = False
+
+    # Scenario 1: Strict safety (Standard usage)
+    @guard(rules=[BatteryMin(20), RequireConnectivity("WIFI")])
+    def clean_zone(self, zone: str):
+        driver.move_to(zone)
+        return "Cleaned"
+
+    # Scenario 2: Critical Operation (Crash on failure)
+    @guard(rules=[MaxTemp(80)], on_fail="raise")
+    def emergency_shutdown(self):
+        print("🚨 SHUTTING DOWN SYSTEM")
+        return "Shutdown Complete"
+
+
+def run_demo():
+    print("--- 🛡️ SilverAi Demo ---\n")
+
+    # 1. HAPPY PATH
+    print("1. Testing Healthy Robot:")
+    robot = IndustrialRobot(battery=80, connection="WIFI")
+    result = robot.clean_zone("Zone A")
+    print(f"Result: {result}\n")
+
+    # 2. FAIL PATH (Battery Low)
+    print("2. Testing Low Battery Robot (Zero-Crash):")
+    dying_robot = IndustrialRobot(battery=10)
+    result = dying_robot.clean_zone("Zone B")
     print(f"Result: {result}")
+    print("NOTE: Script did not crash! Agent can read the error above.\n")
+
+    # 3. DRY RUN PATH
+    print("3. Testing Dry Run (Simulation):")
+    robot._silver_dry_run = True
+    result = robot.clean_zone("Zone C")
+    print(f"Result: {result}")
+    print("NOTE: Rules passed, but hardware was NOT touched.\n")
+
+    # 4. EXCEPTION PATH
+    print("4. Testing 'on_fail=raise' (Overheating):")
+    hot_robot = IndustrialRobot(temp=95)
+    try:
+        hot_robot.emergency_shutdown()
+    except GuardViolationError as e:
+        print(f"CAUGHT EXCEPTION: {e}")
+        print("NOTE: Script crashed as requested via on_fail='raise'.")
+
+
+if __name__ == "__main__":
+    run_demo()
