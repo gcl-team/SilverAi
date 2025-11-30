@@ -4,7 +4,7 @@
 
 [![SilverAi CI](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
 > **"You wouldn't let a drunk person drive a forklift. Why let a probabilistic LLM drive your physical hardware?"**
 
@@ -78,7 +78,7 @@ The Agent receives this structured rejection (instead of crashing):
 
 ## 🏛️ Architecture
 
-SilverAi acts as the "Prefrontal Cortex" for your Agent—a logical check before impulsive actions.
+SilverAi acts as the "Prefrontal Cortex" for your Agent. It is a logical check before impulsive actions.
 
 ```mermaid
 graph LR
@@ -115,6 +115,15 @@ def generate_payment_link(self, amount): ...
 ## 🧪 Simulation & Testing (No Hardware Required)
 
 One of the hardest parts of IoT development is testing failure states (e.g., "What happens if the battery dies halfway?"). SilverAi provides a DryRun harness to test safety logic instantly.
+
+```mermaid
+graph TD
+    Start[Agent Request] --> Check{Safety Rules}
+    Check -- Unsafe --> Fail[Return Error]
+    Check -- Safe --> Mode{Dry Run Active?}
+    Mode -- Yes --> Dry[Return 'Success: Simulated']
+    Mode -- No --> Real[Execute Real Hardware]
+```
 
 ```python
 from silver_ai.test import DryRun

@@ -1,16 +1,100 @@
 import functools
-from typing import Any, Callable
+import logging
+from typing import Any, Callable, Dict, List, Protocol, runtime_checkable
+
+logger = logging.getLogger("SilverAI")
 
 
-def guard() -> Callable:
+@runtime_checkable
+class GuardRule(Protocol):
     """
-    A temporary skeleton of the guard decorator.
+    Blueprint for any safety rule.
     """
+
+    def check(self, state: Dict[str, Any]) -> bool:
+        """Returns True if safety check passes, False if it fails."""
+        ...
+
+    def violation_message(self) -> str:
+        """Human-readable explanation of why it failed."""
+        ...
+
+    def suggestion(self) -> str:
+        """How the Agent should fix this."""
+        ...
+
+
+class GuardResult(Dict):
+    status: str
+    reason: str
+    suggestion: str | None
+    dry_run: bool
+
+
+def guard(rules: List[GuardRule], state_key: str = "state") -> Callable:
+    """
+    The Safety Decorator.
+
+    Args:
+        rules: List of objects implementing GuardRule.
+        state_key: The attribute name on 'self' to inspect (default: "state").
+    """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # Placeholder: Just verify we can intercept the call
-            print("SilverAi Guard: Scanning...")
+        def wrapper(*args, **kwargs):
+            # --- Context Extraction ---
+            # We assume the decorated function is a method: func(self, ...)
+            # So args[0] is 'self'.
+            if not args:
+                # If there are no arguments at all...
+                # We cannot possibly find 'self', so we cannot check state.
+                # Just run the function and get out to avoid crashing.
+                # It prevents your library from crashing if a user accidentally puts
+                # @guard on a static function or a plain function that has no arguments.
+                # Should ideally raise a config error, but let's be safe
+                return func(*args, **kwargs)
+
+            instance = args[0]
+
+            current_state = getattr(instance, state_key, {})
+
+            # --- Rule Validation ---
+            for rule in rules:
+                if not rule.check(current_state):
+                    msg = rule.violation_message()
+                    logger.warning(f"Guard blocked execution: {msg}")
+
+                    # ZERO-CRASH POLICY: Return a Dict, don't throw Exception
+                    # We are deliberately choosing NOT to raise exception, which would
+                    # be the Pythonic norm. Instead, we are converting the logic
+                    # failure into a data payload.
+                    # This way, the caller can handle it gracefully.
+                    return {
+                        "status": "error",
+                        "reason": msg,
+                        "suggestion": rule.suggestion(),
+                        "dry_run": False,
+                    }
+
+            # --- Dry Run Check ---
+            # Check if the user activated Dry Run globally or on the instance
+            is_dry_run = getattr(instance, "_silver_dry_run", False)
+
+            if is_dry_run:
+                logger.info(f"Dry Run: {func.__name__} passed checks but was skipped.")
+                return {
+                    "status": "success",
+                    "reason": "Checks passed, but Dry Run is active.",
+                    "suggestion": None,
+                    "dry_run": True,
+                }
+
+            # --- Execution ---
+            # If we are here, everything is safe.
+            # It is safe and not Dry Run, so we can proceed to execute the function.
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
