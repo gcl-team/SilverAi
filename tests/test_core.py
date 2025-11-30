@@ -1,6 +1,8 @@
 from typing import Any, Dict, cast
 
-from silver_ai.core import guard
+import pytest
+
+from silver_ai.core import GuardViolationError, guard
 
 # --- Mock Infrastructure and Mock Rules ---
 
@@ -35,16 +37,23 @@ class MockDevice:
         self._silver_dry_run = dry_run
         self.action_performed = False
 
-    # Apply the guard to a method
+    # Safe action that always passes
     @guard(rules=[AlwaysTrueRule()])
     def safe_action(self):
         self.action_performed = True
         return "Executed"
 
+    # Critical action that always fails
     @guard(rules=[AlwaysFalseRule()])
     def dangerous_action(self):
         self.action_performed = True
         return "Should Not Happen"
+
+    # Critical action that raises on failure
+    @guard(rules=[AlwaysFalseRule()], on_fail="raise")
+    def critical_action(self):
+        self.action_performed = True
+        return "Should Crash"
 
 
 # --- Test Cases ---
@@ -138,3 +147,21 @@ def test_guard_on_plain_function_no_args():
         return "I ran"
 
     assert plain_func() == "I ran"
+
+
+def test_guard_raises_exception_when_requested():
+    """
+    If on_fail="raise" is set, the guard should raise GuardViolationError
+    instead of returning a dictionary.
+    """
+    device = MockDevice()
+
+    # The 'with' block asserts that the code inside IT causes an exception.
+    with pytest.raises(GuardViolationError) as excinfo:
+        device.critical_action()
+
+    # 1. Verify the crash message matches the rule
+    assert "You shall not pass!" in str(excinfo.value)
+
+    # 2. Verify the hardware execution was blocked
+    assert device.action_performed is False
