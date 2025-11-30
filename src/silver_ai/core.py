@@ -31,7 +31,15 @@ class GuardResult(Dict):
     dry_run: bool
 
 
-def guard(rules: List[GuardRule], state_key: str = "state") -> Callable:
+class GuardViolationError(Exception):
+    """Raised when on_fail='raise' and a rule fails."""
+
+    pass
+
+
+def guard(
+    rules: List[GuardRule], state_key: str = "state", on_fail: str = "return_dict"
+) -> Callable:
     """
     The Safety Decorator.
 
@@ -64,6 +72,12 @@ def guard(rules: List[GuardRule], state_key: str = "state") -> Callable:
                 if not rule.check(current_state):
                     msg = rule.violation_message()
                     logger.warning(f"Guard blocked execution: {msg}")
+
+                    # ON-FAIL BEHAVIOR: Raise exception if user requested it
+                    # This does not affect ZERO-CRASH POLICY below because
+                    # raising exception is an explicit user choice.
+                    if on_fail == "raise":
+                        raise GuardViolationError(msg)
 
                     # ZERO-CRASH POLICY: Return a Dict, don't throw Exception
                     # We are deliberately choosing NOT to raise exception, which would
