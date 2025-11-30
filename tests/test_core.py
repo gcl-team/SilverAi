@@ -2,7 +2,7 @@ from typing import Any, Dict, cast
 
 import pytest
 
-from silver_ai.core import GuardResult, GuardViolationError, guard
+from silver_ai.core import DRY_RUN_FLAG, GuardResult, GuardViolationError, guard
 
 # --- Mock Infrastructure and Mock Rules ---
 
@@ -34,7 +34,7 @@ class MockDevice:
 
     def __init__(self, state=None, dry_run=False):
         self.state = state if state else {}
-        self._silver_dry_run = dry_run
+        setattr(self, DRY_RUN_FLAG, dry_run)
         self.action_performed = False
 
     # Safe action that always passes

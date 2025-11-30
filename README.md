@@ -57,6 +57,7 @@ class IndustrialRobot:
     @guard(
         rules.BatteryMin(15),
         rules.RequireConnectivity(protocol="BLE")
+        # rules.TransactionLimit(amount=50)
     )
     def start_operation(self, zone: str):
         # 🛑 This code NEVER runs because battery (10) < 15
@@ -102,6 +103,7 @@ graph TD
 ```
 
 ```python
+from silver_ai.core import DRY_RUN_FLAG
 from my_robot import IndustrialRobot
 
 def test_safety_stops_low_battery():
@@ -111,9 +113,9 @@ def test_safety_stops_low_battery():
     # 2. Inject dangerous state
     robot.state = {"battery": 5, "connection": "online"}
     
-    # 3. Activate Dry Run 
-    # This ensures hardware is skipped even if a rule accidentally passes.
-    robot._silver_dry_run = True 
+    # 3. Enable Safety Override (Dry Run)
+    # We manually flag this instance for simulation
+    setattr(robot, DRY_RUN_FLAG, True)
     
     # 4. Run the function
     result = robot.start_operation("Zone A")
@@ -127,7 +129,7 @@ def test_safety_stops_low_battery():
 
 This project uses **Poetry** for dependency management and **Ruff** for strict code quality.
 
-### 1. Prerequisities
+### 1. Prerequisites
 * Python 3.11+;
 * [Poetry](https://python-poetry.org/docs/) installed.
   ```bash

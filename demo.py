@@ -3,7 +3,7 @@ SilverAi Demo
 Run this script to see the library in action.
 """
 
-from silver_ai.core import GuardViolationError, guard
+from silver_ai.core import DRY_RUN_FLAG, GuardViolationError, guard
 from silver_ai.rules import BatteryMin, MaxTemp, RequireConnectivity
 
 
@@ -20,7 +20,7 @@ class IndustrialRobot:
     def __init__(self, battery=100, temp=50, connection="WIFI"):
         self.state = {"battery": battery, "temperature": temp, "connection": connection}
         # Default Dry Run status
-        self._silver_dry_run = False
+        setattr(self, DRY_RUN_FLAG, False)
 
     # Scenario 1: Strict safety (Standard usage)
     @guard(rules=[BatteryMin(20), RequireConnectivity("WIFI")])
@@ -53,7 +53,7 @@ def run_demo():
 
     # 3. DRY RUN PATH
     print("3. Testing Dry Run (Simulation):")
-    robot._silver_dry_run = True
+    setattr(robot, DRY_RUN_FLAG, True)
     result = robot.clean_zone("Zone C")
     print(f"Result: {result}")
     print("NOTE: Rules passed, but hardware was NOT touched.\n")

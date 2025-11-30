@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List, Protocol, TypedDict, runtime_check
 
 logger = logging.getLogger("SilverAI")
 
+DRY_RUN_FLAG = "_silver_ai_dry_run"
+
 
 @runtime_checkable
 class GuardRule(Protocol):
@@ -97,7 +99,7 @@ def guard(
 
             # --- Dry Run Check ---
             # Check if the user activated Dry Run globally or on the instance
-            is_dry_run = getattr(instance, "_silver_dry_run", False)
+            is_dry_run = getattr(instance, DRY_RUN_FLAG, False)
 
             if is_dry_run:
                 logger.info(f"Dry Run: {func.__name__} passed checks but was skipped.")
