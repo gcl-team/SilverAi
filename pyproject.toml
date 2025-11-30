@@ -9,6 +9,15 @@ description = "Deterministic State-Guardrails for Agentic Hardware"
 authors = ["Goh Chun Lin <chunlin@live.com.sg>"]
 readme = "README.md"
 license = "Apache-2.0"
+homepage = "https://github.com/gcl-team/SilverAi"
+repository = "https://github.com/gcl-team/SilverAi"
+keywords = ["ai", "agents", "safety", "guardrails", "robotics", "iot"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Framework :: Pydantic",
+]
 packages = [{include = "silver_ai", from = "src"}]
 
 [tool.poetry.dependencies]

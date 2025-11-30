@@ -141,6 +141,43 @@ def test_safety_stops_low_battery():
     assert "Battery" in result['reason']
 ```
 
+## 🛠️ Development on Local Machine
+
+This project uses **Poetry** for dependency management and **Ruff** for strict code quality.
+
+### 1. Prerequisities
+* Python 3.11+;
+* [Poetry](https://python-poetry.org/docs/) installed.
+  ```bash
+  pip install poetry
+  ```  
+
+### 2. Setup
+Clone the repo and install dependencies (including the virtual environment):
+```bash
+git clone https://github.com/gcl-team/SilverAi.git
+cd SilverAi
+poetry install
+```
+
+### 3. Running the Demo
+We provide a `demo.py` to showcase the behavior (Success, Failure, Dry Run, Exception).
+```bash
+poetry run python demo.py
+```
+
+### 4. Running 
+We use pytest for unit testing.
+```bash
+poetry run pytest
+```
+
+### 5. Linting & Security
+We use ruff to enforce PEP8, import sorting, and Bandit security rules.
+```bash
+poetry run ruff check .
+```
+
 ## 🤝 Contributing
 We welcome your contributions! Bug reports and feature suggestions are encouraged. 
 Open issues or submit pull requests via [Project Issues](https://github.com/gcl-team/SilverAi/issues).
