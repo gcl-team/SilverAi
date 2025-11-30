@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "silver-ai"
-version = "0.1.0"
+version = "0.1.1"
 description = "Deterministic State-Guardrails for Agentic Hardware"
 authors = ["Goh Chun Lin <chunlin@live.com.sg>"]
 readme = "README.md"
