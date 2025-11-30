@@ -1,6 +1,6 @@
 import functools
 import logging
-from typing import Any, Callable, Dict, List, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, List, Protocol, TypedDict, runtime_checkable
 
 logger = logging.getLogger("SilverAI")
 
@@ -24,7 +24,7 @@ class GuardRule(Protocol):
         ...
 
 
-class GuardResult(Dict):
+class GuardResult(TypedDict):
     status: str
     reason: str
     suggestion: str | None
@@ -55,6 +55,10 @@ def guard(
             # We assume the decorated function is a method: func(self, ...)
             # So args[0] is 'self'.
             if not args:
+                logger.warning(
+                    f"SilverAI: @guard ignored on {func.__name__}. "
+                    "No 'self' context found. Is this a static method?"
+                )
                 # If there are no arguments at all...
                 # We cannot possibly find 'self', so we cannot check state.
                 # Just run the function and get out to avoid crashing.

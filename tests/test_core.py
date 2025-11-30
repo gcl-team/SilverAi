@@ -2,7 +2,7 @@ from typing import Any, Dict, cast
 
 import pytest
 
-from silver_ai.core import GuardViolationError, guard
+from silver_ai.core import GuardResult, GuardViolationError, guard
 
 # --- Mock Infrastructure and Mock Rules ---
 
@@ -97,7 +97,7 @@ def test_dry_run_skips_execution_but_checks_rules():
 
     assert device.action_performed is False
 
-    result_dict = cast(Dict[str, Any], result)
+    result_dict = cast(GuardResult, result)
 
     assert result_dict["status"] == "success"
     assert result_dict["dry_run"] is True
@@ -113,7 +113,7 @@ def test_dry_run_still_fails_unsafe_rules():
 
     result = device.dangerous_action()
 
-    result_dict = cast(Dict[str, Any], result)
+    result_dict = cast(GuardResult, result)
 
     assert result_dict["status"] == "error"
     assert result_dict["reason"] == "You shall not pass!"
