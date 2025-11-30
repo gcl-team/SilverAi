@@ -1,0 +1,37 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write  # Required for Trusted Publishing (OIDC)
+
+jobs:
+  pypi-publish:
+    name: Build and Publish to PyPI
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Set up Python
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3. Install Poetry
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      # 4. Build the package
+      - name: Build Package
+        run: poetry build
+
+      # 5. Push to PyPI (Using OIDC, no password needed)
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
