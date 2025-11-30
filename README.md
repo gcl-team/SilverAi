@@ -56,8 +56,7 @@ class IndustrialRobot:
 
     @guard(
         rules.BatteryMin(15),
-        rules.RequireConnectivity(protocol="BLE"),
-        on_fail="raise" # Make the script to crash (e.g., during unit tests).
+        rules.RequireConnectivity(protocol="BLE")
     )
     def start_operation(self, zone: str):
         # 🛑 This code NEVER runs because battery (10) < 15
@@ -70,9 +69,9 @@ The Agent receives this structured rejection (instead of crashing):
 ```json
 {
   "status": "error",
-  "code": "SAFETY_BLOCK",
-  "reason": "Operation blocked: Battery level 10% is below minimum threshold 15%. Device is OFFLINE.",
-  "suggestion": "Charge device and re-establish BLE connection."
+  "reason": "Battery critical: 10%. Required: 15%.",
+  "suggestion": "Connect device to charger before proceeding.",
+  "dry_run": false
 }
 ```
 
@@ -89,29 +88,6 @@ graph LR
     C -- Passes Rules --> E[Execute Hardware API]
 ```
 
-## 🎯 Domain Modules
-
-While architected for Robotics, the state machine of SilverAi is universal.
-
-### 🤖 IoT / Robotics Module
-
-```python
-@guard(rules.MaxTemp(80), rules.DeviceIdle())
-def firmware_update(self): ...
-```
-
-## 💸 FinTech / E-Commerce Module
-
-Prevent Chatbots from hallucinating prices or authorizing large transactions.
-
-```python
-@guard(
-    rules.TransactionLimit(50.00), 
-    rules.AllowedDomains(["official-store.com"])
-)
-def generate_payment_link(self, amount): ...
-```
-
 ## 🧪 Simulation & Testing (No Hardware Required)
 
 One of the hardest parts of IoT development is testing failure states (e.g., "What happens if the battery dies halfway?"). SilverAi provides a DryRun harness to test safety logic instantly.
@@ -126,18 +102,24 @@ graph TD
 ```
 
 ```python
-from silver_ai.test import DryRun
 from my_robot import IndustrialRobot
 
 def test_safety_stops_low_battery():
-    # 1. Mock a dangerous state
-    dangerous_state = {"battery": 5, "connection": "online"}
+    # 1. Instantiate the robot
+    robot = IndustrialRobot()
     
-    # 2. Run the function in "Dry Run" mode (skips real hardware)
-    result = DryRun(IndustrialRobot.start_operation, state=dangerous_state)
+    # 2. Inject dangerous state
+    robot.state = {"battery": 5, "connection": "online"}
     
-    # 3. Assert that SilverAi caught it
-    assert result['success'] is False
+    # 3. Activate Dry Run 
+    # This ensures hardware is skipped even if a rule accidentally passes.
+    robot._silver_dry_run = True 
+    
+    # 4. Run the function
+    result = robot.start_operation("Zone A")
+    
+    # 5. Assert that SilverAI caught it
+    assert result['status'] == 'error'
     assert "Battery" in result['reason']
 ```
 
