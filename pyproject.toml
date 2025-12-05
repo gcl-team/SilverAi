@@ -28,6 +28,10 @@ pydantic = "^2.0"
 pytest = "^8.0"
 ruff = "^0.3.0"
 
+[tool.deptry]
+ignore_notebooks = true
+exclude = ["demo.py", "tests"]
+
 # --- Ruff Configuration (Linting + Security) ---
 [tool.ruff]
 line-length = 88
