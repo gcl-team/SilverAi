@@ -31,19 +31,25 @@ jobs:
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
 
-    # 5. Install the library itself
+    # 5. Check for ghost dependencies
+    - name: Check for Ghost Dependencies
+      run: |
+        pip install deptry
+        deptry .
+
+    # 6. Install the library itself
     - name: Install library
       run: poetry install --no-interaction
 
-    # 6. Run Security & Linting (Ruff)
+    # 7. Run Security & Linting (Ruff)
     - name: Run Linting & Security (Ruff)
       run: poetry run ruff check .
 
-    # 7. Run Tests
+    # 8. Run Tests
     - name: Run Tests
       run: poetry run pytest
 
-    # 8. Check the library size
+    # 9. Check the library size
     - name: Build and Check Size
       run: |
         poetry build
