@@ -42,3 +42,22 @@ jobs:
     # 7. Run Tests
     - name: Run Tests
       run: poetry run pytest
+
+    # 8. Check the library size
+    - name: Build and Check Size
+      run: |
+        poetry build
+        echo "Checking package size..."
+        
+        # Get size in KB
+        SIZE_KB=$(du -k dist/*.whl | cut -f1)
+        echo "Size: ${SIZE_KB} KB"
+        
+        # Fail if > 50KB
+        if [ "$SIZE_KB" -gt 50 ]; then
+          echo "❌ ERROR: SilverAI is too fat! (${SIZE_KB}KB > 50KB)"
+          exit 1
+        else
+          echo "✅ Optimization Pass: Library is lean."
+        fi
+    
