@@ -11,7 +11,7 @@ class AlwaysTrueRule:
     def check(self, state):
         return True
 
-    def violation_message(self):
+    def violation_message(self, state):
         return ""
 
     def suggestion(self):
@@ -22,11 +22,30 @@ class AlwaysFalseRule:
     def check(self, state):
         return False
 
-    def violation_message(self):
+    def violation_message(self, state):
         return "You shall not pass!"
 
     def suggestion(self):
         return "Go back."
+
+
+class StatefulMessageRule:
+    """
+    A rule that uses the state to generate its error message.
+    Used to verify that the message generation receives the correct context.
+    """
+
+    def check(self, state):
+        return False  # Always fail
+
+    def violation_message(self, state):
+        # The message depends on the SPECIFIC robot's battery
+        # If this was using 'self.stored_battery', it might be stale.
+        # By using 'state['battery']', we prove it is reading live data.
+        return f"Battery is {state.get('battery')}"
+
+    def suggestion(self):
+        return ""
 
 
 class MockDevice:
@@ -54,6 +73,20 @@ class MockDevice:
     def critical_action(self):
         self.action_performed = True
         return "Should Crash"
+
+
+# The shared rule instance (Simulating the @guard instantiation)
+# By doing this, we can create multiple devices sharing the same rule instance.
+SHARED_RULE = StatefulMessageRule()
+
+
+class SharedRuleDevice:
+    def __init__(self, battery):
+        self.state = {"battery": battery}
+
+    @guard(rules=[SHARED_RULE])
+    def run(self):
+        pass
 
 
 # --- Test Cases ---
@@ -165,3 +198,29 @@ def test_guard_raises_exception_when_requested():
 
     # 2. Verify the hardware execution was blocked
     assert device.action_performed is False
+
+
+def test_guard_rules_are_stateless_across_instances():
+    """
+    Verify that a single Rule instance shared across multiple objects
+    correctly reads the unique state of each object.
+    """
+    # 1. Create two devices with different states
+    robot_low = SharedRuleDevice(battery=10)
+    robot_high = SharedRuleDevice(battery=99)
+
+    # 2. Run Robot Low (Fails)
+    result_low = robot_low.run()
+    result_low = cast(Dict[str, Any], result_low)
+
+    # 3. Run Robot High (Fails)
+    result_high = robot_high.run()
+    result_high = cast(Dict[str, Any], result_high)
+
+    # 4. ASSERTION:
+    # If the rule was stateful/buggy, 'self.current_level' might have been
+    # overwritten by the last run or initialization.
+    # We verify that EACH result contains its OWN battery level.
+
+    assert result_low["reason"] == "Battery is 10"
+    assert result_high["reason"] == "Battery is 99"

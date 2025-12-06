@@ -10,15 +10,15 @@ class BatteryMin:
 
     def __init__(self, min_level: int):
         self.min_level = min_level
-        self.current_level = 0  # Store for error message
 
     def check(self, state: Dict[str, Any]) -> bool:
         # Fail Safe: If 'battery' key is missing, assume 0%
-        self.current_level = state.get("battery", 0)
-        return self.current_level >= self.min_level
+        current_level = state.get("battery", 0)
+        return current_level >= self.min_level
 
-    def violation_message(self) -> str:
-        return f"Battery critical: {self.current_level}%. Required: {self.min_level}%."
+    def violation_message(self, state: Dict[str, Any]) -> str:
+        current_level = state.get("battery", 0)
+        return f"Battery critical: {current_level}%. Required: {self.min_level}%."
 
     def suggestion(self) -> str:
         return "Connect device to charger before proceeding."
@@ -33,20 +33,17 @@ class MaxTemp:
 
     def __init__(self, max_celsius: int):
         self.max_celsius = max_celsius
-        self.current_temp = 0
 
     def check(self, state: Dict[str, Any]) -> bool:
         # Fail Safe: If 'temperature' is missing, assume 999 (Too hot)
         # Note: Depending on context, you might want to assume 0.
         # But for safety, missing thermal sensor data usually means "Stop".
-        self.current_temp = state.get("temperature", 999)
-        return self.current_temp <= self.max_celsius
+        current_temp = state.get("temperature", 999)
+        return current_temp <= self.max_celsius
 
-    def violation_message(self) -> str:
-        return (
-            f"Overheating detected: {self.current_temp}°C. "
-            f"Limit: {self.max_celsius}°C."
-        )
+    def violation_message(self, state: Dict[str, Any]) -> str:
+        current_temp = state.get("temperature", 999)
+        return f"Overheating detected: {current_temp}°C. Limit: {self.max_celsius}°C."
 
     def suggestion(self) -> str:
         return "Allow device to cool down or activate cooling fans."
@@ -62,17 +59,17 @@ class RequireConnectivity:
 
     def __init__(self, protocol: str):
         self.required_protocol = protocol.upper()
-        self.current_status = "UNKNOWN"
 
     def check(self, state: Dict[str, Any]) -> bool:
         raw_status = state.get("connection", "OFFLINE")
-        self.current_status = str(raw_status).upper()
+        current_status = str(raw_status).upper()
+        return current_status == self.required_protocol
 
-        return self.current_status == self.required_protocol
-
-    def violation_message(self) -> str:
+    def violation_message(self, state: Dict[str, Any]) -> str:
+        raw_status = state.get("connection", "OFFLINE")
+        current_status = str(raw_status).upper()
         return (
-            f"Connection mismatch. Found: {self.current_status}. "
+            f"Connection mismatch. Found: {current_status}. "
             f"Required: {self.required_protocol}."
         )
 

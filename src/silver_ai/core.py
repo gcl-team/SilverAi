@@ -17,7 +17,7 @@ class GuardRule(Protocol):
         """Returns True if safety check passes, False if it fails."""
         ...
 
-    def violation_message(self) -> str:
+    def violation_message(self, state: Dict[str, Any]) -> str:
         """Human-readable explanation of why it failed."""
         ...
 
@@ -76,7 +76,7 @@ def guard(
             # --- Rule Validation ---
             for rule in rules:
                 if not rule.check(current_state):
-                    msg = rule.violation_message()
+                    msg = rule.violation_message(current_state)
                     logger.warning(f"Guard blocked execution: {msg}")
 
                     # ON-FAIL BEHAVIOR: Raise exception if user requested it

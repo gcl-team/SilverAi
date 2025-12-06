@@ -6,13 +6,13 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # Required for Trusted Publishing (OIDC)
+  id-token: write # Required for Trusted Publishing (OIDC)
 
 jobs:
   pypi-publish:
     name: Build and Publish to PyPI
     runs-on: ubuntu-latest
-    
+
     steps:
       # 1. Check out the code
       - name: Checkout Code
@@ -30,30 +30,31 @@ jobs:
 
       # 4. Verify version match between Git tag and pyproject.toml
       - name: Verify Version Match
+        shell: bash
         run: |
-            # 1. Get the Git Tag
-            RAW_TAG=${GITHUB_REF#refs/tags/}
-            if [[ "$RAW_TAG" =~ ^v(.*) ]]; then
-                GIT_TAG="${BASH_REMATCH[1]}"
-            else
-                GIT_TAG="$RAW_TAG"
-            fi
-            
-            # 2. Get the Poetry Version
-            POETRY_VERSION=$(poetry version --short)
-            
-            echo "Git Tag: $GIT_TAG"
-            echo "Poetry Version: $POETRY_VERSION"
-            
-            # 3. Compare
-            if [ "$GIT_TAG" != "$POETRY_VERSION" ]; then
-                echo "❌ ERROR: Version Mismatch!"
-                echo "You tagged '$GIT_TAG' but pyproject.toml says '$POETRY_VERSION'."
-                echo "Please run 'poetry version patch' or 'poetry version $GIT_TAG' and commit."
-                exit 1
-            else
-                echo "✅ Versions match. Proceeding."
-            fi
+          # 1. Get the Git Tag
+          RAW_TAG=${GITHUB_REF#refs/tags/}
+          if [[ "$RAW_TAG" =~ ^v(.*) ]]; then
+            GIT_TAG="${BASH_REMATCH[1]}"
+          else
+            GIT_TAG="$RAW_TAG"
+          fi
+
+          # 2. Get the Poetry Version
+          POETRY_VERSION=$(poetry version --short)
+
+          echo "Git Tag: $GIT_TAG"
+          echo "Poetry Version: $POETRY_VERSION"
+
+          # 3. Compare
+          if [ "$GIT_TAG" != "$POETRY_VERSION" ]; then
+            echo "❌ ERROR: Version Mismatch!"
+            echo "You tagged '$GIT_TAG' but pyproject.toml says '$POETRY_VERSION'."
+            echo "Please run 'poetry version patch' or 'poetry version $GIT_TAG' and commit."
+            exit 1
+          else
+            echo "✅ Versions match. Proceeding."
+          fi
 
       # 5. Build the package
       - name: Build Package
