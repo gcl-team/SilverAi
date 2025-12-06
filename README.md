@@ -122,7 +122,7 @@ def test_safety_stops_low_battery():
     # 4. Run the function
     result = robot.start_operation("Zone A")
     
-    # 5. Assert that SilverAI caught it
+    # 5. Assert that SilverAi caught it
     assert result['status'] == 'error'
     assert "Battery" in result['reason']
 ```
