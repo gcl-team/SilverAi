@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import Any, Callable, Dict, List, Protocol, TypedDict, runtime_checkable
 
-logger = logging.getLogger("SilverAi")
+logger = logging.getLogger(__name__)
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
 
