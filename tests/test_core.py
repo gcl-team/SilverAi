@@ -11,7 +11,7 @@ class AlwaysTrueRule:
     def check(self, state):
         return True
 
-    def violation_message(self):
+    def violation_message(self, state):
         return ""
 
     def suggestion(self):
@@ -22,7 +22,7 @@ class AlwaysFalseRule:
     def check(self, state):
         return False
 
-    def violation_message(self):
+    def violation_message(self, state):
         return "You shall not pass!"
 
     def suggestion(self):

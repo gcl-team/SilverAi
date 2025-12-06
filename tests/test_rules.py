@@ -11,7 +11,7 @@ def test_battery_min_fail():
     rule = BatteryMin(20)
     state = {"battery": 10}
     assert rule.check(state) is False
-    assert "10%" in rule.violation_message()
+    assert "10%" in rule.violation_message(state)
 
 
 def test_battery_missing_key_defaults_to_zero():
@@ -19,7 +19,7 @@ def test_battery_missing_key_defaults_to_zero():
     rule = BatteryMin(10)
     state = {}  # Empty state
     assert rule.check(state) is False  # Should fail, assuming 0
-    assert "0%" in rule.violation_message()
+    assert "0%" in rule.violation_message(state)
 
 
 def test_max_temp_pass():
@@ -39,7 +39,7 @@ def test_max_temp_missing_sensor_fails_safe():
     rule = MaxTemp(80)
     state = {}
     assert rule.check(state) is False
-    assert "999" in rule.violation_message()
+    assert "999" in rule.violation_message(state)
 
 
 def test_connectivity_pass():
@@ -53,7 +53,7 @@ def test_connectivity_fail():
     rule = RequireConnectivity("WIFI")
     state = {"connection": "BLE"}
     assert rule.check(state) is False
-    assert "Found: BLE" in rule.violation_message()
+    assert "Found: BLE" in rule.violation_message(state)
 
 
 def test_connectivity_missing_key_defaults_offline():
@@ -61,4 +61,4 @@ def test_connectivity_missing_key_defaults_offline():
     rule = RequireConnectivity("ETHERNET")
     state = {}
     assert rule.check(state) is False
-    assert "Found: OFFLINE" in rule.violation_message()
+    assert "Found: OFFLINE" in rule.violation_message(state)

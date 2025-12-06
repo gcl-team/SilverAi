@@ -17,8 +17,9 @@ class BatteryMin:
         self.current_level = state.get("battery", 0)
         return self.current_level >= self.min_level
 
-    def violation_message(self) -> str:
-        return f"Battery critical: {self.current_level}%. Required: {self.min_level}%."
+    def violation_message(self, state: Dict[str, Any]) -> str:
+        current_level = state.get("battery", 0)
+        return f"Battery critical: {current_level}%. Required: {self.min_level}%."
 
     def suggestion(self) -> str:
         return "Connect device to charger before proceeding."
@@ -42,10 +43,10 @@ class MaxTemp:
         self.current_temp = state.get("temperature", 999)
         return self.current_temp <= self.max_celsius
 
-    def violation_message(self) -> str:
+    def violation_message(self, state: Dict[str, Any]) -> str:
+        current_temp = state.get("temperature", 999)
         return (
-            f"Overheating detected: {self.current_temp}°C. "
-            f"Limit: {self.max_celsius}°C."
+            f"Overheating detected: {current_temp}°C. " f"Limit: {self.max_celsius}°C."
         )
 
     def suggestion(self) -> str:
@@ -70,9 +71,10 @@ class RequireConnectivity:
 
         return self.current_status == self.required_protocol
 
-    def violation_message(self) -> str:
+    def violation_message(self, state: Dict[str, Any]) -> str:
+        current_status = state.get("connection", "OFFLINE")
         return (
-            f"Connection mismatch. Found: {self.current_status}. "
+            f"Connection mismatch. Found: {current_status}. "
             f"Required: {self.required_protocol}."
         )
 
