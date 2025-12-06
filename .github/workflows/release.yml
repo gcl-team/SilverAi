@@ -14,7 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. Only run this when a tag is pushed
+      # 1. Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Only run this when a tag is pushed
       - name: Verify Version Match
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -25,7 +29,7 @@ jobs:
             POETRY_VERSION=$(poetry version --short)
             
             echo "Git Tag: $GIT_TAG"
-            echo "Poetry Config: $POETRY_VERSION"
+            echo "Poetry Version: $POETRY_VERSION"
             
             # 3. Compare
             if [ "$GIT_TAG" != "$POETRY_VERSION" ]; then
@@ -36,10 +40,6 @@ jobs:
             else
                 echo "✅ Versions match. Proceeding."
             fi
-
-      # 2. Check out the code
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
       # 3. Set up Python
       - name: Set up Python 3.10
