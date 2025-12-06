@@ -1,10 +1,22 @@
 import functools
 import logging
-from typing import Any, Callable, Dict, List, Protocol, TypedDict, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Protocol,
+    TypedDict,
+    runtime_checkable,
+)
 
 logger = logging.getLogger(__name__)
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
+
+
+FailureMode = Literal["return_dict", "raise"]
 
 
 @runtime_checkable
@@ -40,7 +52,9 @@ class GuardViolationError(Exception):
 
 
 def guard(
-    rules: List[GuardRule], state_key: str = "state", on_fail: str = "return_dict"
+    rules: List[GuardRule],
+    state_key: str = "state",
+    on_fail: FailureMode = "return_dict",
 ) -> Callable:
     """
     The Safety Decorator.
