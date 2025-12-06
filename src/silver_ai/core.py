@@ -62,6 +62,9 @@ def guard(
     Args:
         rules: List of objects implementing GuardRule.
         state_key: The attribute name on 'self' to inspect (default: "state").
+        on_fail: Behavior when a rule fails.
+            - "return_dict": Return a Dict with error details (Zero-Crash Policy).
+            - "raise": Raise GuardViolationError exception.
     """
 
     def decorator(func: Callable) -> Callable:
