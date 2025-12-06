@@ -30,10 +30,14 @@ jobs:
 
       # 4. Verify version match between Git tag and pyproject.toml
       - name: Verify Version Match
-        if: startsWith(github.ref, 'refs/tags/v')
         run: |
             # 1. Get the Git Tag
-            GIT_TAG=${GITHUB_REF#refs/tags/v}
+            RAW_TAG=${GITHUB_REF#refs/tags/}
+            if [[ "$RAW_TAG" =~ ^v(.*) ]]; then
+                GIT_TAG="${BASH_REMATCH[1]}"
+            else
+                GIT_TAG="$RAW_TAG"
+            fi
             
             # 2. Get the Poetry Version
             POETRY_VERSION=$(poetry version --short)
