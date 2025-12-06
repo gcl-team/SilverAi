@@ -43,9 +43,7 @@ class MaxTemp:
 
     def violation_message(self, state: Dict[str, Any]) -> str:
         current_temp = state.get("temperature", 999)
-        return (
-            f"Overheating detected: {current_temp}°C. " f"Limit: {self.max_celsius}°C."
-        )
+        return f"Overheating detected: {current_temp}°C. Limit: {self.max_celsius}°C."
 
     def suggestion(self) -> str:
         return "Allow device to cool down or activate cooling fans."
