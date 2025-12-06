@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import Any, Callable, Dict, List, Protocol, TypedDict, runtime_checkable
 
-logger = logging.getLogger("SilverAI")
+logger = logging.getLogger("SilverAi")
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
 
@@ -58,7 +58,7 @@ def guard(
             # So args[0] is 'self'.
             if not args:
                 logger.warning(
-                    f"SilverAI: @guard ignored on {func.__name__}. "
+                    f"SilverAi: @guard ignored on {func.__name__}. "
                     "No 'self' context found. Is this a static method?"
                 )
                 # If there are no arguments at all...

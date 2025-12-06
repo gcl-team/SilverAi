@@ -31,33 +31,65 @@ jobs:
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
 
-    # 5. Install the library itself
+    # 5. Check for ghost dependencies
+    - name: Check for Ghost Dependencies
+      run: |
+        pip install deptry
+        deptry .
+
+    # 6. Install the library itself
     - name: Install library
       run: poetry install --no-interaction
 
-    # 6. Run Security & Linting (Ruff)
+    # 7. Run Security & Linting (Ruff)
     - name: Run Linting & Security (Ruff)
       run: poetry run ruff check .
 
-    # 7. Run Tests
+    # 8. Run Tests
     - name: Run Tests
       run: poetry run pytest
 
-    # 8. Check the library size
+    # 9. Check the library size
     - name: Build and Check Size
       run: |
         poetry build
         echo "Checking package size..."
         
         # Get size in KB
-        SIZE_KB=$(du -k dist/*.whl | cut -f1)
-        echo "Size: ${SIZE_KB} KB"
+        LIB_SIZE_KB=$(du -sk dist/*.whl | cut -f1)
+        echo "Size: ${LIB_SIZE_KB}KB"
         
-        # Fail if > 50KB
-        if [ "$SIZE_KB" -gt 50 ]; then
-          echo "❌ ERROR: SilverAI is too fat! (${SIZE_KB}KB > 50KB)"
+        # Fail if > 20KB
+        if [ "$LIB_SIZE_KB" -gt 20 ]; then
+          echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
           exit 1
         else
           echo "✅ Optimization Pass: Library is lean."
         fi
-    
+
+    # 10. Check the total size with dependencies
+    - name: Check Total Install Size
+      run: |
+        echo "🧪 Creating a fresh environment..."
+        python -m venv .simulated_env
+        source .simulated_env/bin/activate
+        
+        # 1. Install the wheel
+        pip install dist/*.whl
+        
+        # 2. Locate site-packages
+        SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+        
+        # 3. Measure ONLY the 'silver_ai' folder
+        # This ignores 'pip' and 'setuptools' overhead
+        LIB_SIZE_KB=$(du -sk $SITE_PACKAGES/silver_ai | cut -f1)
+        
+        echo "📦 SilverAi Installed Size: ${LIB_SIZE_KB}KB"
+
+        # 4. Fail if > 100KB
+        if [ "$LIB_SIZE_KB" -gt 100 ]; then
+          echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
+          exit 1
+        else
+          echo "✅ Optimization Pass: Library is lean."
+        fi
