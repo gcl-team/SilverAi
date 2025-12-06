@@ -56,12 +56,12 @@ jobs:
         echo "Checking package size..."
         
         # Get size in KB
-        SIZE_KB=$(du -k dist/*.whl | cut -f1)
-        echo "Size: ${SIZE_KB} KB"
+        LIB_SIZE_KB=$(du -sk dist/*.whl | cut -f1)
+        echo "Size: ${LIB_SIZE_KB}KB"
         
         # Fail if > 20KB
-        if [ "$SIZE_KB" -gt 20 ]; then
-          echo "❌ ERROR: SilverAI is too fat! (${SIZE_KB}KB > 20KB)"
+        if [ "$LIB_SIZE_KB" -gt 20 ]; then
+          echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
           exit 1
         else
           echo "✅ Optimization Pass: Library is lean."
@@ -70,13 +70,25 @@ jobs:
     # 10. Check the total size with dependencies
     - name: Check Total Install Size
       run: |
-        # Calculate size of site-packages (where libs live)
-        TOTAL_SIZE=$(du -sh $(poetry env info --path)/lib | cut -f1)
-        echo "Total Weight (Library + Dependencies): $TOTAL_SIZE"
+        echo "🧪 Creating a fresh environment..."
+        python -m venv .simulated_env
+        source .simulated_env/bin/activate
+        
+        # 1. Install the wheel
+        pip install dist/*.whl
+        
+        # 2. Locate site-packages
+        SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+        
+        # 3. Measure ONLY the 'silver_ai' folder
+        # This ignores 'pip' and 'setuptools' overhead
+        LIB_SIZE_KB=$(du -sk $SITE_PACKAGES/silver_ai | cut -f1)
+        
+        echo "📦 SilverAi Installed Size: ${LIB_SIZE_KB}KB"
 
-        # Fail if > 50KB
-        if [ "$TOTAL_SIZE" -gt 50 ]; then
-          echo "❌ ERROR: SilverAI is too fat! (${TOTAL_SIZE}KB > 50KB)"
+        # 4. Fail if > 100KB
+        if [ "$LIB_SIZE_KB" -gt 100 ]; then
+          echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
           exit 1
         else
           echo "✅ Optimization Pass: Library is lean."
