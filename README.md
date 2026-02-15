@@ -1,6 +1,6 @@
 # 🛡️ SilverAi
 
-**Deterministic State-Guardrails for Agentic Hardware & Critical Systems.**
+**Deterministic Pre-flight validation for AI agents controlling hardware.**
 
 [![PyPI](https://img.shields.io/pypi/v/silver-ai)](https://pypi.org/project/silver-ai/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -8,22 +8,21 @@
 [![Platform](https://img.shields.io/badge/platform-linux--armv7%20%7C%20linux--aarch64-blue)](https://piwheels.org/project/silver-ai/)
 [![SilverAi CI](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml)
 
-> **"You wouldn't let a drunk person drive a forklift. Why let a probabilistic LLM drive your physical hardware?"**
+> **A governance layer to catch AI agent mistakes before they reach your hardware.**
 
 ## 🚨 The Problem
 
-Large Language Models (LLMs) like GPT-4, DeepSeek, and Claude are **Probabilistic Engines**. They are optimized for creativity, not safety.
+Large Language Models (LLMs) are probabilistic, but hardware is deterministic. SilverAi is a lightweight Python middleware that acts as a "bouncer at the door". It validates Agent requests against the current state snapshot of your system before execution, preventing obvious hallucinations from becoming physical actions.
 
-When connecting Agents to **Physical Hardware (IoT/Robotics)** or **Financial Systems**, "99% accuracy" is not enough. A single hallucination can cause:
-*   **Physical Damage:** Ignoring battery/thermal limits on a device.
-*   **Operational Failure:** Attempting to control a disconnected device over BLE/MQTT.
-*   **Financial Risk:** Hallucinating discounts or executing unauthorized transactions.
+### Where SilverAi Helps
 
-Existing solutions (Bedrock Guardrails, NeMo) focus on **Semantic Safety** (profanity, PII). They are blind to **State Safety**.
+* **Smart Home/Office Automation**: Preventing agents from triggering devices during "do not disturb" modes;
+* **Warehouse Batch Operations**: Validating battery and connectivity status before starting a non-critical routine;
+* **Prototyping & Development**: Making the development of Agentic IoT safer by catching logic errors early.
 
 ## ⚡ The Solution
 
-**SilverAi** is a lightweight, dependency-free Python middleware that enforces **Deterministic Contracts** on your Agent's tools. It sits between the LLM's intent and your system's execution.
+**SilverAi** is a lightweight, dependency-free Python middleware that enforces **pre-flight validation** on the tools of your AI agent. It sits between the LLM intent and the execution of your system.
 
 ### ✨ Key Features
 *   **🐍 Pythonic Decorators:** Clean, readable syntax using `@guard`.
@@ -80,15 +79,15 @@ The Agent receives this structured rejection (instead of crashing):
 
 ## 🏛️ Architecture
 
-SilverAi acts as the "Prefrontal Cortex" for your Agent. It is a logical check before impulsive actions.
+SilverAi is part of a **Defense-in-Depth** strategy. It validates agent intent so your lower-level systems do not have to.
 
 ```mermaid
-graph LR
-    A[User Request] --> B[LLM / Agent]
-    B -->|Unsafe Intent| C{SilverAi Guard}
-    C -- Fails Rules --> D[Block & Explain]
-    D -->|Feedback Loop| B
-    C -- Passes Rules --> E[Execute Hardware API]
+graph TD
+    A[AI Agent Intent] --> B{SilverAi Governance}
+    B -- Invalid --> C[Reject & Feedback]
+    B -- Valid --> D[Hardware Controller]
+    D --> E{Physical Safety System / PLC}
+    E --> F[Execution]
 ```
 
 ## 🧪 Simulation & Testing (No Hardware Required)
@@ -97,7 +96,7 @@ One of the hardest parts of IoT development is testing failure states (e.g., "Wh
 
 ```mermaid
 graph TD
-    Start[Agent Request] --> Check{Safety Rules}
+    Start[AI Agent Request] --> Check{Safety Rules}
     Check -- Unsafe --> Fail[Return Error]
     Check -- Safe --> Mode{Dry Run Active?}
     Mode -- Yes --> Dry[Return 'Success: Simulated']
@@ -163,6 +162,15 @@ We use ruff to enforce PEP8, import sorting, and Bandit security rules.
 ```bash
 poetry run ruff check .
 ```
+
+## ⚠️ Important Limitations (Read Before Use)
+SilverAi is a **Software Governance Layer**, not a real-time safety system.
+
+* **Not for Real-Time**: Adds ~50-200ms latency. Works best for batch operations and control loops >500ms;
+* **Pre-flight only**: Validates the intent before execution. It does not provide continuous monitoring during the action;
+* **Defense-in-Depth**: SilverAi should be one layer of many. It does not replace hardware-level E-stops or PLC safety logic.
+
+❌ **NEVER Use for**: Automotive, Medical Devices, Collision Avoidance, or any system where failure results in injury.
 
 ## 🤝 Contributing
 We welcome your contributions! Bug reports and feature suggestions are encouraged. 
