@@ -29,7 +29,7 @@ ruff = "^0.3.0"
 
 [tool.deptry]
 ignore_notebooks = true
-exclude = [".venv", "venv", ".git", "__pycache__", "tests", "demo.py"]
+exclude = [".venv", "venv", ".git", "__pycache__", "tests", "demo"]
 
 # --- Ruff Configuration (Linting + Security) ---
 [tool.ruff]
