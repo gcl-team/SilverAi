@@ -6,13 +6,13 @@ from typing import (
     Dict,
     List,
     Literal,
-    Optional,
     ParamSpec,
     Protocol,
     TypedDict,
     TypeVar,
     Union,
     cast,
+    overload,
     runtime_checkable,
 )
 
@@ -45,17 +45,43 @@ class GuardRule(Protocol):
         ...
 
 
-class GuardResult(TypedDict):
-    status: str
+class GuardErrorResult(TypedDict):
+    status: Literal["error"]
     reason: str
-    suggestion: Optional[str]
-    dry_run: bool
+    suggestion: str
+    dry_run: Literal[False]
+
+
+class GuardDryRunResult(TypedDict):
+    status: Literal["success"]
+    reason: str
+    suggestion: None
+    dry_run: Literal[True]
+
+
+GuardResult = Union[GuardErrorResult, GuardDryRunResult]
 
 
 class GuardViolationError(Exception):
     """Raised when on_fail='raise' and a rule fails."""
 
     pass
+
+
+@overload
+def guard(
+    rules: List[GuardRule],
+    state_key: str = "state",
+    on_fail: Literal["return_dict"] = "return_dict",
+) -> Callable[[Callable[P, R]], Callable[P, Union[R, GuardResult]]]: ...
+
+
+@overload
+def guard(
+    rules: List[GuardRule],
+    state_key: str = "state",
+    on_fail: Literal["raise"] = "raise",
+) -> Callable[[Callable[P, R]], Callable[P, Union[R, GuardDryRunResult]]]: ...
 
 
 def guard(
