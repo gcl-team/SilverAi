@@ -93,7 +93,10 @@ def guard(
             instance = args[0]
 
             state_value = getattr(instance, state_key, {})
-            current_state = cast(Dict[str, Any], state_value if isinstance(state_value, dict) else {})
+            current_state = cast(
+                Dict[str, Any],
+                state_value if isinstance(state_value, dict) else {},
+            )
 
             # --- Rule Validation ---
             for rule in rules:
