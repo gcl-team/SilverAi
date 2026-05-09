@@ -3,6 +3,7 @@
     "python.analysis.extraPaths": [
         "./src"
     ],
+    "python.analysis.typeCheckingMode": "basic",
     "[python]": {
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {

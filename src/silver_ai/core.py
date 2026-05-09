@@ -6,8 +6,11 @@ from typing import (
     Dict,
     List,
     Literal,
+    Optional,
     Protocol,
     TypedDict,
+    TypeVar,
+    cast,
     runtime_checkable,
 )
 
@@ -17,6 +20,7 @@ DRY_RUN_FLAG = "_silver_ai_dry_run"
 
 
 FailureMode = Literal["return_dict", "raise"]
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 @runtime_checkable
@@ -41,7 +45,7 @@ class GuardRule(Protocol):
 class GuardResult(TypedDict):
     status: str
     reason: str
-    suggestion: str | None
+    suggestion: Optional[str]
     dry_run: bool
 
 
@@ -55,7 +59,7 @@ def guard(
     rules: List[GuardRule],
     state_key: str = "state",
     on_fail: FailureMode = "return_dict",
-) -> Callable:
+) -> Callable[[F], F]:
     """
     The Safety Decorator.
 
@@ -67,9 +71,9 @@ def guard(
             - "raise": Raise GuardViolationError exception.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: F) -> F:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # --- Context Extraction ---
             # We assume the decorated function is a method: func(self, ...)
             # So args[0] is 'self'.
@@ -88,7 +92,8 @@ def guard(
 
             instance = args[0]
 
-            current_state = getattr(instance, state_key, {})
+            state_value = getattr(instance, state_key, {})
+            current_state = cast(Dict[str, Any], state_value if isinstance(state_value, dict) else {})
 
             # --- Rule Validation ---
             for rule in rules:
@@ -132,6 +137,6 @@ def guard(
             # It is safe and not Dry Run, so we can proceed to execute the function.
             return func(*args, **kwargs)
 
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator

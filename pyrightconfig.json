@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/schema/pyrightconfig.schema.json",
+  "include": ["src", "demo", "tests"],
+  "exclude": ["**/__pycache__", ".venv", "venv", "dist", "build"],
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": "none",
+  "executionEnvironments": [
+    {
+      "root": "src",
+      "typeCheckingMode": "strict"
+    },
+    {
+      "root": "demo",
+      "typeCheckingMode": "basic"
+    },
+    {
+      "root": "tests",
+      "typeCheckingMode": "basic"
+    }
+  ]
+}
