@@ -6,8 +6,13 @@ from typing import (
     Dict,
     List,
     Literal,
+    ParamSpec,
     Protocol,
     TypedDict,
+    TypeVar,
+    Union,
+    cast,
+    overload,
     runtime_checkable,
 )
 
@@ -17,6 +22,8 @@ DRY_RUN_FLAG = "_silver_ai_dry_run"
 
 
 FailureMode = Literal["return_dict", "raise"]
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 @runtime_checkable
@@ -38,11 +45,21 @@ class GuardRule(Protocol):
         ...
 
 
-class GuardResult(TypedDict):
-    status: str
+class GuardErrorResult(TypedDict):
+    status: Literal["error"]
     reason: str
-    suggestion: str | None
-    dry_run: bool
+    suggestion: str
+    dry_run: Literal[False]
+
+
+class GuardDryRunResult(TypedDict):
+    status: Literal["success"]
+    reason: str
+    suggestion: None
+    dry_run: Literal[True]
+
+
+GuardResult = Union[GuardErrorResult, GuardDryRunResult]
 
 
 class GuardViolationError(Exception):
@@ -51,11 +68,27 @@ class GuardViolationError(Exception):
     pass
 
 
+@overload
+def guard(
+    rules: List[GuardRule],
+    state_key: str = "state",
+    on_fail: Literal["return_dict"] = "return_dict",
+) -> Callable[[Callable[P, R]], Callable[P, Union[R, GuardResult]]]: ...
+
+
+@overload
+def guard(
+    rules: List[GuardRule],
+    state_key: str = "state",
+    on_fail: Literal["raise"] = "raise",
+) -> Callable[[Callable[P, R]], Callable[P, Union[R, GuardDryRunResult]]]: ...
+
+
 def guard(
     rules: List[GuardRule],
     state_key: str = "state",
     on_fail: FailureMode = "return_dict",
-) -> Callable:
+) -> Callable[[Callable[P, R]], Callable[P, Union[R, GuardResult]]]:
     """
     The Safety Decorator.
 
@@ -67,9 +100,9 @@ def guard(
             - "raise": Raise GuardViolationError exception.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, R]) -> Callable[P, Union[R, GuardResult]]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[R, GuardResult]:
             # --- Context Extraction ---
             # We assume the decorated function is a method: func(self, ...)
             # So args[0] is 'self'.
@@ -88,7 +121,11 @@ def guard(
 
             instance = args[0]
 
-            current_state = getattr(instance, state_key, {})
+            state_value = getattr(instance, state_key, {})
+            current_state = cast(
+                Dict[str, Any],
+                state_value if isinstance(state_value, dict) else {},
+            )
 
             # --- Rule Validation ---
             for rule in rules:
