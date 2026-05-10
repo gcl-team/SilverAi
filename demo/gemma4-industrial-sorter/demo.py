@@ -129,10 +129,7 @@ def _print_planner_trace(agent: SorterAgent) -> None:
             print(f"     parse_error: {_shorten(trace['parse_error'], 180)}")
 
         if TRACE_VERBOSE and trace.get("raw_response_preview"):
-            print(
-                "     raw_preview: "
-                f"{trace['raw_response_preview']}"
-            )
+            print("     raw_preview: " f"{trace['raw_response_preview']}")
 
 
 def run_safe_scenario() -> None:
