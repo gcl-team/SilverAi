@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
 from typing import Any, Dict, List, Optional
 from urllib import error, request
+from urllib.parse import urlparse
 
 from silver_ai import rules
 from silver_ai.core import guard
@@ -60,11 +62,38 @@ class SorterAgent:
         self.base_url = os.getenv("LM_STUDIO_BASE_URL", "http://127.0.0.1:1234")
         self.model = os.getenv("LM_STUDIO_MODEL", "google/gemma-4-e4b")
         self.timeout_seconds = float(os.getenv("LM_STUDIO_TIMEOUT", "20"))
+        self.allow_remote_lm_studio = os.getenv("LM_STUDIO_ALLOW_REMOTE", "0") == "1"
         self.raw_preview_chars = int(os.getenv("LM_STUDIO_RAW_PREVIEW_CHARS", "500"))
         self.parsed_preview_chars = int(
             os.getenv("LM_STUDIO_PARSED_PREVIEW_CHARS", "300")
         )
         self.planner_trace_log: List[Dict[str, Any]] = []
+
+    def _build_lm_studio_endpoint(self) -> str:
+        parsed = urlparse(self.base_url)
+        scheme = parsed.scheme.lower()
+        hostname = (parsed.hostname or "").lower()
+
+        if scheme not in {"http", "https"}:
+            raise ValueError("LM_STUDIO_BASE_URL must use http or https.")
+
+        if not self.allow_remote_lm_studio and not self._is_localhost(hostname):
+            raise ValueError(
+                "LM_STUDIO_BASE_URL must point to localhost unless "
+                "LM_STUDIO_ALLOW_REMOTE=1 is set."
+            )
+
+        return f"{self.base_url.rstrip('/')}/v1/chat/completions"
+
+    @staticmethod
+    def _is_localhost(hostname: str) -> bool:
+        if hostname in {"localhost", "::1"}:
+            return True
+
+        try:
+            return ipaddress.ip_address(hostname).is_loopback
+        except ValueError:
+            return hostname.endswith(".localhost")
 
     def _extract_planner_json(self, content: str) -> Dict[str, Any]:
         text = content.strip()
@@ -112,7 +141,7 @@ class SorterAgent:
         return value
 
     def _planner_request(self, prompt: str) -> Dict[str, Any]:
-        endpoint = f"{self.base_url.rstrip('/')}/v1/chat/completions"  # noqa: S310
+        endpoint = self._build_lm_studio_endpoint()
         trace: Dict[str, Any] = {
             "source": "lm_studio",
             "endpoint": endpoint,
@@ -135,7 +164,7 @@ class SorterAgent:
             ],
         }
         data = json.dumps(payload).encode("utf-8")
-        req = request.Request(
+        req = request.Request(  # noqa: S310
             endpoint,
             data=data,
             headers={"Content-Type": "application/json"},
