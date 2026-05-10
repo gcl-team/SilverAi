@@ -11,8 +11,9 @@ try:
 except ImportError:
     PrettyTable = None
 
-USE_LIVE_LM_STUDIO = os.getenv("DEMO_USE_LIVE_LMSTUDIO", "0") == "1"
+USE_LIVE_OPENAI = os.getenv("DEMO_USE_LIVE_OPENAI", "0") == "1"
 TRACE_VERBOSE = os.getenv("DEMO_TRACE_VERBOSE", "0") == "1"
+LIVE_PLANNER_MODE_LABEL = "live OpenAI-compatible endpoint"
 
 
 def _shorten(text: object, max_len: int = 140) -> str:
@@ -101,10 +102,10 @@ def _planner_from_sequence(plans: Iterable[Dict[str, object]]):
 
 def _print_planner_trace(agent: SorterAgent) -> None:
     if not agent.planner_trace_log:
-        print("Planner trace: no LM Studio call trace recorded.")
+        print("Planner trace: no OpenAI-compatible endpoint call trace recorded.")
         return
 
-    print("Planner trace (LM Studio):")
+    print("Planner trace (OpenAI-compatible endpoint):")
     for idx, trace in enumerate(agent.planner_trace_log, start=1):
         print(
             f"  Request {idx}: "
@@ -136,7 +137,7 @@ def run_safe_scenario() -> None:
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
-    if not USE_LIVE_LM_STUDIO:
+    if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
             [
                 {
@@ -151,9 +152,10 @@ def run_safe_scenario() -> None:
     result = agent.propose_and_execute("PKG-100", {"priority": "high"})
 
     print("--- Scenario 1: Healthy state ---")
-    print(f"Planner mode: {'live LM Studio' if USE_LIVE_LM_STUDIO else 'scripted'}")
+    planner_mode = LIVE_PLANNER_MODE_LABEL if USE_LIVE_OPENAI else "scripted"
+    print(f"Planner mode: {planner_mode}")
     _print_result_summary("Scenario 1 Result", result)
-    if USE_LIVE_LM_STUDIO:
+    if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
 
@@ -162,7 +164,7 @@ def run_overheat_replan_scenario() -> None:
     gateway.update_motor_temp(85.0)
     agent = SorterAgent(gateway)
 
-    if not USE_LIVE_LM_STUDIO:
+    if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
             [
                 {
@@ -183,9 +185,10 @@ def run_overheat_replan_scenario() -> None:
     result = agent.propose_and_execute("PKG-200", {"priority": "urgent"})
 
     print("--- Scenario 2: Dangerous overheat + re-plan attempt ---")
-    print(f"Planner mode: {'live LM Studio' if USE_LIVE_LM_STUDIO else 'scripted'}")
+    planner_mode = LIVE_PLANNER_MODE_LABEL if USE_LIVE_OPENAI else "scripted"
+    print(f"Planner mode: {planner_mode}")
     _print_result_summary("Scenario 2 Result", result)
-    if USE_LIVE_LM_STUDIO:
+    if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
 
@@ -194,7 +197,7 @@ def run_low_battery_scenario() -> None:
     gateway.update_battery(10)
     agent = SorterAgent(gateway)
 
-    if not USE_LIVE_LM_STUDIO:
+    if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
             [
                 {
@@ -210,9 +213,10 @@ def run_low_battery_scenario() -> None:
 
     print("--- Scenario 3: BatteryMin violation ---")
     print("Expected: Blocked because battery is below 20% threshold.")
-    print(f"Planner mode: {'live LM Studio' if USE_LIVE_LM_STUDIO else 'scripted'}")
+    planner_mode = LIVE_PLANNER_MODE_LABEL if USE_LIVE_OPENAI else "scripted"
+    print(f"Planner mode: {planner_mode}")
     _print_result_summary("Scenario 3 Result", result)
-    if USE_LIVE_LM_STUDIO:
+    if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
 
@@ -221,7 +225,7 @@ def run_max_load_scenario() -> None:
     gateway.update_belt_load(160.0)
     agent = SorterAgent(gateway)
 
-    if not USE_LIVE_LM_STUDIO:
+    if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
             [
                 {
@@ -237,9 +241,10 @@ def run_max_load_scenario() -> None:
 
     print("--- Scenario 4: MaxLoad violation ---")
     print("Expected: Blocked because belt_load exceeds MaxLoad threshold.")
-    print(f"Planner mode: {'live LM Studio' if USE_LIVE_LM_STUDIO else 'scripted'}")
+    planner_mode = LIVE_PLANNER_MODE_LABEL if USE_LIVE_OPENAI else "scripted"
+    print(f"Planner mode: {planner_mode}")
     _print_result_summary("Scenario 4 Result", result)
-    if USE_LIVE_LM_STUDIO:
+    if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
 
@@ -248,14 +253,14 @@ def run_demo() -> None:
     if PrettyTable is None:
         print("PrettyTable not installed; using text output.")
         print("Install for table output: poetry run pip install prettytable")
-    if USE_LIVE_LM_STUDIO:
-        print("Live LM Studio mode enabled via DEMO_USE_LIVE_LMSTUDIO=1")
+    if USE_LIVE_OPENAI:
+        print("Live OpenAI-compatible endpoint mode enabled via DEMO_USE_LIVE_OPENAI=1")
         if TRACE_VERBOSE:
             print("Verbose trace enabled via DEMO_TRACE_VERBOSE=1")
     else:
         print(
             "Scripted planner mode (CI-safe). "
-            "Set DEMO_USE_LIVE_LMSTUDIO=1 for live mode."
+                "Set DEMO_USE_LIVE_OPENAI=1 for live endpoint mode."
         )
     run_safe_scenario()
     print()

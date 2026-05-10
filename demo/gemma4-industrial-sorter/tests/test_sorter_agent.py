@@ -119,35 +119,35 @@ def test_weight_coercion_converts_pounds_to_kg():
 
 
 def test_localhost_endpoint_is_allowed(monkeypatch):
-    monkeypatch.setenv("LM_STUDIO_BASE_URL", "http://127.0.0.1:1234")
-    monkeypatch.delenv("LM_STUDIO_ALLOW_REMOTE", raising=False)
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:1234")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
 
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
-    assert agent._build_lm_studio_endpoint() == "http://127.0.0.1:1234/v1/chat/completions"
+    assert agent._build_openai_endpoint() == "http://127.0.0.1:1234/v1/chat/completions"
 
 
 def test_remote_endpoint_requires_explicit_opt_in(monkeypatch):
-    monkeypatch.setenv("LM_STUDIO_BASE_URL", "http://example.com:1234")
-    monkeypatch.delenv("LM_STUDIO_ALLOW_REMOTE", raising=False)
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://example.com:1234")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
 
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
     try:
-        agent._build_lm_studio_endpoint()
+        agent._build_openai_endpoint()
     except ValueError as exc:
-        assert "LM_STUDIO_ALLOW_REMOTE=1" in str(exc)
+        assert "OPENAI_ALLOW_REMOTE=1" in str(exc)
     else:
         raise AssertionError("Expected remote endpoint validation to fail")
 
 
 def test_remote_endpoint_allowed_with_opt_in(monkeypatch):
-    monkeypatch.setenv("LM_STUDIO_BASE_URL", "http://example.com:1234")
-    monkeypatch.setenv("LM_STUDIO_ALLOW_REMOTE", "1")
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://example.com:1234")
+    monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")
 
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
-    assert agent._build_lm_studio_endpoint() == "http://example.com:1234/v1/chat/completions"
+    assert agent._build_openai_endpoint() == "http://example.com:1234/v1/chat/completions"

@@ -54,21 +54,21 @@ The demo script now runs four scenarios in sequence:
 - Scenario 3: Low battery below BatteryMin threshold (expected blocked)
 - Scenario 4: Belt load above MaxLoad threshold (expected blocked)
 
-## Run with real LM Studio and show proof
+## Run with a real OpenAI-compatible endpoint and show proof
 
-Enable live mode to call LM Studio directly instead of scripted planner output:
+Enable live mode to call an OpenAI-compatible endpoint directly instead of scripted planner output:
 
 ```bash
-DEMO_USE_LIVE_LMSTUDIO=1 poetry run python demo/gemma4-industrial-sorter/demo.py
+OPENAI_RAW_PREVIEW_CHARS=0 OPENAI_PARSED_PREVIEW_CHARS=0 DEMO_USE_LIVE_OPENAI=1 DEMO_TRACE_VERBOSE=1 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
 In live mode, the demo prints a planner trace section showing:
 - endpoint and model used
-- HTTP status from LM Studio
+- HTTP status from the endpoint
 - raw response preview from the API
 - parsed response preview used by the sorter agent
 
-This output demonstrates the request/response path came from LM Studio.
+This output demonstrates the request/response path came from an OpenAI-compatible endpoint.
 
 ## Run tests for this demo only
 
@@ -76,12 +76,13 @@ This output demonstrates the request/response path came from LM Studio.
 poetry run pytest demo/gemma4-industrial-sorter/tests
 ```
 
-## LM Studio note
+## Endpoint note
 
 The current demo script uses scripted planner responses to keep CI deterministic.
-The sorter agent also includes a real LM Studio local API path for runtime integration.
+The sorter agent also includes a real OpenAI-compatible endpoint path for runtime integration.
+LM Studio is one example; Ollama or other compatible servers can work too.
 
 Environment variables supported by the agent:
-- LM_STUDIO_BASE_URL (default: http://127.0.0.1:1234)
-- LM_STUDIO_MODEL (default: google/gemma-4-e4b)
-- LM_STUDIO_TIMEOUT (default: 20)
+- OPENAI_BASE_URL (default: http://127.0.0.1:1234)
+- OPENAI_MODEL (default: google/gemma-4-e4b)
+- OPENAI_TIMEOUT (default: 20)

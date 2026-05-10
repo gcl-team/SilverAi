@@ -59,28 +59,28 @@ class SorterAgent:
     def __init__(self, gateway: Any):
         self.gateway = gateway
         self.state = gateway.state
-        self.base_url = os.getenv("LM_STUDIO_BASE_URL", "http://127.0.0.1:1234")
-        self.model = os.getenv("LM_STUDIO_MODEL", "google/gemma-4-e4b")
-        self.timeout_seconds = float(os.getenv("LM_STUDIO_TIMEOUT", "20"))
-        self.allow_remote_lm_studio = os.getenv("LM_STUDIO_ALLOW_REMOTE", "0") == "1"
-        self.raw_preview_chars = int(os.getenv("LM_STUDIO_RAW_PREVIEW_CHARS", "500"))
+        self.base_url = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:1234")
+        self.model = os.getenv("OPENAI_MODEL", "google/gemma-4-e4b")
+        self.timeout_seconds = float(os.getenv("OPENAI_TIMEOUT", "20"))
+        self.allow_remote_openai = os.getenv("OPENAI_ALLOW_REMOTE", "0") == "1"
+        self.raw_preview_chars = int(os.getenv("OPENAI_RAW_PREVIEW_CHARS", "500"))
         self.parsed_preview_chars = int(
-            os.getenv("LM_STUDIO_PARSED_PREVIEW_CHARS", "300")
+            os.getenv("OPENAI_PARSED_PREVIEW_CHARS", "300")
         )
         self.planner_trace_log: List[Dict[str, Any]] = []
 
-    def _build_lm_studio_endpoint(self) -> str:
+    def _build_openai_endpoint(self) -> str:
         parsed = urlparse(self.base_url)
         scheme = parsed.scheme.lower()
         hostname = (parsed.hostname or "").lower()
 
         if scheme not in {"http", "https"}:
-            raise ValueError("LM_STUDIO_BASE_URL must use http or https.")
+            raise ValueError("OPENAI_BASE_URL must use http or https.")
 
-        if not self.allow_remote_lm_studio and not self._is_localhost(hostname):
+        if not self.allow_remote_openai and not self._is_localhost(hostname):
             raise ValueError(
-                "LM_STUDIO_BASE_URL must point to localhost unless "
-                "LM_STUDIO_ALLOW_REMOTE=1 is set."
+                "OPENAI_BASE_URL must point to localhost unless "
+                "OPENAI_ALLOW_REMOTE=1 is set."
             )
 
         return f"{self.base_url.rstrip('/')}/v1/chat/completions"
@@ -141,9 +141,9 @@ class SorterAgent:
         return value
 
     def _planner_request(self, prompt: str) -> Dict[str, Any]:
-        endpoint = self._build_lm_studio_endpoint()
+        endpoint = self._build_openai_endpoint()
         trace: Dict[str, Any] = {
-            "source": "lm_studio",
+            "source": "openai-compatible endpoint",
             "endpoint": endpoint,
             "model": self.model,
             "prompt_preview": prompt[:200],
@@ -184,9 +184,11 @@ class SorterAgent:
             self.planner_trace_log.append(trace)
             return {
                 "status": "planner_error",
-                "source": "lm_studio",
-                "reason": f"LM Studio request failed: {exc}",
-                "suggestion": "Ensure LM Studio is running and model is loaded.",
+                "source": "openai-compatible endpoint",
+                "reason": f"OpenAI-compatible endpoint request failed: {exc}",
+                "suggestion": (
+                    "Ensure the endpoint is reachable and the model is loaded."
+                ),
             }
 
         try:
@@ -202,7 +204,7 @@ class SorterAgent:
             self.planner_trace_log.append(trace)
             return {
                 "status": "ok",
-                "source": "lm_studio",
+                "source": "openai-compatible endpoint",
                 "route": str(as_json["route"]),
                 "package_weight": coerced_weight,
                 "reason": str(as_json["reason"]),
@@ -218,7 +220,7 @@ class SorterAgent:
             self.planner_trace_log.append(trace)
             return {
                 "status": "planner_error",
-                "source": "lm_studio",
+                "source": "openai-compatible endpoint",
                 "reason": f"Invalid planner response: {exc}",
                 "suggestion": (
                     "Return raw JSON with route, package_weight, reason. "
