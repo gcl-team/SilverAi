@@ -13,102 +13,102 @@ jobs:
       demo_sorter: ${{ steps.filter.outputs.demo_sorter }}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Detect Path Changes
-      id: filter
-      uses: dorny/paths-filter@v3
-      with:
-        filters: |
-          demo_sorter:
-            - 'demo/gemma4-industrial-sorter/**'
+      - name: Detect Path Changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            demo_sorter:
+              - 'demo/gemma4-industrial-sorter/**'
 
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    # 1. Check out the code
-    - uses: actions/checkout@v4
+      # 1. Check out the code
+      - uses: actions/checkout@v4
 
-    # 2. Install Python
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.14"
+      # 2. Install Python
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
 
-    # 3. Install Poetry (The Manager)
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+      # 3. Install Poetry (The Manager)
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-    # 4. Install Dependencies (Reads pyproject.toml)
-    - name: Install dependencies
-      run: poetry install --no-interaction --no-root
+      # 4. Install Dependencies (Reads pyproject.toml)
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
 
-    # 5. Check for ghost dependencies
-    - name: Check for Ghost Dependencies
-      run: |
-        pip install deptry
-        deptry .
+      # 5. Check for ghost dependencies
+      - name: Check for Ghost Dependencies
+        run: |
+          pip install deptry
+          deptry .
 
-    # 6. Install the library itself
-    - name: Install library
-      run: poetry install --no-interaction
+      # 6. Install the library itself
+      - name: Install library
+        run: poetry install --no-interaction
 
-    # 7. Run Security & Linting (Ruff)
-    - name: Run Linting & Security (Ruff)
-      run: poetry run ruff check .
+      # 7. Run Security & Linting (Ruff)
+      - name: Run Linting & Security (Ruff)
+        run: poetry run ruff check .
 
-    # 8. Run Tests
-    - name: Run Core Tests
-      run: poetry run pytest tests
+      # 8. Run Tests
+      - name: Run Core Tests
+        run: poetry run pytest tests
 
-    # 9. Check the library size
-    - name: Build and Check Size
-      run: |
-        poetry build
-        echo "Checking package size..."
-        
-        # Get size in KB
-        LIB_SIZE_KB=$(du -sk dist/*.whl | cut -f1)
-        echo "Size: ${LIB_SIZE_KB}KB"
-        
-        # Fail if > 20KB
-        if [ "$LIB_SIZE_KB" -gt 20 ]; then
-          echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
-          exit 1
-        else
-          echo "✅ Optimization Pass: Library is lean."
-        fi
+      # 9. Check the library size
+      - name: Build and Check Size
+        run: |
+          poetry build
+          echo "Checking package size..."
 
-    # 10. Check the total size with dependencies
-    - name: Check Total Install Size
-      run: |
-        echo "🧪 Creating a fresh environment..."
-        python -m venv .simulated_env
-        source .simulated_env/bin/activate
-        
-        # 1. Install the wheel
-        pip install dist/*.whl
-        
-        # 2. Locate site-packages
-        SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
-        
-        # 3. Measure ONLY the 'silver_ai' folder
-        # This ignores 'pip' and 'setuptools' overhead
-        LIB_SIZE_KB=$(du -sk $SITE_PACKAGES/silver_ai | cut -f1)
-        
-        echo "📦 SilverAi Installed Size: ${LIB_SIZE_KB}KB"
+          # Get size in KB
+          LIB_SIZE_KB=$(du -sk dist/*.whl | cut -f1)
+          echo "Size: ${LIB_SIZE_KB}KB"
 
-        # 4. Fail if > 100KB
-        if [ "$LIB_SIZE_KB" -gt 100 ]; then
-          echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
-          exit 1
-        else
-          echo "✅ Optimization Pass: Library is lean."
-        fi
+          # Fail if > 20KB
+          if [ "$LIB_SIZE_KB" -gt 20 ]; then
+            echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
+            exit 1
+          else
+            echo "✅ Optimization Pass: Library is lean."
+          fi
+
+      # 10. Check the total size with dependencies
+      - name: Check Total Install Size
+        run: |
+          echo "🧪 Creating a fresh environment..."
+          python -m venv .simulated_env
+          source .simulated_env/bin/activate
+
+          # 1. Install the wheel
+          pip install dist/*.whl
+
+          # 2. Locate site-packages
+          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+
+          # 3. Measure ONLY the 'silver_ai' folder
+          # This ignores 'pip' and 'setuptools' overhead
+          LIB_SIZE_KB=$(du -sk $SITE_PACKAGES/silver_ai | cut -f1)
+
+          echo "📦 SilverAi Installed Size: ${LIB_SIZE_KB}KB"
+
+          # 4. Fail if > 100KB
+          if [ "$LIB_SIZE_KB" -gt 100 ]; then
+            echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
+            exit 1
+          else
+            echo "✅ Optimization Pass: Library is lean."
+          fi
 
   demo-sorter-tests:
     runs-on: ubuntu-latest
@@ -116,21 +116,21 @@ jobs:
     if: needs.detect-changes.outputs.demo_sorter == 'true'
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.14"
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-    - name: Install dependencies
-      run: poetry install --no-interaction
+      - name: Install dependencies
+        run: poetry install --no-interaction
 
-    - name: Run Demo Sorter Tests
-      run: poetry run pytest demo/gemma4-industrial-sorter/tests
+      - name: Run Demo Sorter Tests
+        run: poetry run pytest demo/gemma4-industrial-sorter/tests
