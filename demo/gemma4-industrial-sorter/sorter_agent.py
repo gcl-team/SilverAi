@@ -110,10 +110,18 @@ class SorterAgent:
                 lines = lines[:-1]
             text = "\n".join(lines).strip()
 
-        if not text.startswith("{"):
-            match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-            if match is not None:
-                text = match.group(0)
+        decoder = json.JSONDecoder()
+        for index, char in enumerate(text):
+            if char != "{":
+                continue
+
+            try:
+                candidate, _ = decoder.raw_decode(text[index:])
+            except json.JSONDecodeError:
+                continue
+
+            if isinstance(candidate, dict):
+                return candidate
 
         return json.loads(text)
 

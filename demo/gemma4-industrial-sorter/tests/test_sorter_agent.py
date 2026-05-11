@@ -148,3 +148,36 @@ def test_remote_endpoint_allowed_with_opt_in(monkeypatch):
     agent = SorterAgent(gateway)
 
     assert agent._build_openai_endpoint() == "https://example.com/v1/chat/completions"
+
+
+def test_extract_planner_json_ignores_extra_non_json_braces():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    content = (
+        "Planner output: "
+        '{"route":"Express Belt","package_weight":5,"reason":"Primary"}'
+        " trailing-debug {not-json}"
+    )
+
+    parsed = agent._extract_planner_json(content)
+
+    assert parsed["route"] == "Express Belt"
+    assert parsed["package_weight"] == 5
+    assert parsed["reason"] == "Primary"
+
+
+def test_extract_planner_json_uses_first_valid_object_when_multiple_exist():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    content = (
+        '{"route":"A","package_weight":1,"reason":"First"} '
+        '{"route":"B","package_weight":2,"reason":"Second"}'
+    )
+
+    parsed = agent._extract_planner_json(content)
+
+    assert parsed["route"] == "A"
+    assert parsed["package_weight"] == 1
+    assert parsed["reason"] == "First"
