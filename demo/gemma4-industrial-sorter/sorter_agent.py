@@ -77,13 +77,20 @@ class SorterAgent:
         parsed = urlparse(self.base_url)
         scheme = parsed.scheme.lower()
         hostname = (parsed.hostname or "").lower()
+        is_localhost = self._is_localhost(hostname)
 
         if scheme not in {"http", "https"}:
             raise ValueError("OPENAI_BASE_URL must use http or https.")
 
-        if not self.allow_remote_openai and not self._is_localhost(hostname):
+        if not self.allow_remote_openai and not is_localhost:
             raise ValueError(
                 "OPENAI_BASE_URL must point to localhost unless "
+                "OPENAI_ALLOW_REMOTE=1 is set."
+            )
+
+        if self.allow_remote_openai and not is_localhost and scheme != "https":
+            raise ValueError(
+                "Remote OPENAI_BASE_URL must use https when "
                 "OPENAI_ALLOW_REMOTE=1 is set."
             )
 

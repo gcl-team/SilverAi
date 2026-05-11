@@ -150,6 +150,21 @@ def test_remote_endpoint_allowed_with_opt_in(monkeypatch):
     assert agent._build_openai_endpoint() == "https://example.com/v1/chat/completions"
 
 
+def test_remote_http_endpoint_rejected_with_remote_opt_in(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://example.com")
+    monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._build_openai_endpoint()
+    except ValueError as exc:
+        assert "must use https" in str(exc)
+    else:
+        raise AssertionError("Expected remote HTTP endpoint validation to fail")
+
+
 def test_extract_planner_json_ignores_extra_non_json_braces():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
