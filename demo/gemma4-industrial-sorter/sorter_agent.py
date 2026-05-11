@@ -132,6 +132,10 @@ class SorterAgent:
 
         return json.loads(text)
 
+    @staticmethod
+    def _safe_json_dumps(payload: Dict[str, Any]) -> str:
+        return json.dumps(payload, sort_keys=True, default=str)
+
     def _coerce_package_weight(self, raw_weight: Any) -> float:
         if isinstance(raw_weight, (int, float)):
             return float(raw_weight)
@@ -273,7 +277,7 @@ class SorterAgent:
     ) -> Dict[str, Any]:
         prompt = (
             f"Package id: {package_id}. "
-            f"Metadata: {json.dumps(package_metadata, sort_keys=True)}. "
+            f"Metadata: {self._safe_json_dumps(package_metadata)}. "
             "Choose a safe sorting route."
         )
         planned = self._planner_request(prompt)
@@ -296,7 +300,7 @@ class SorterAgent:
         feedback_prompt = (
             f"Previous plan blocked. Reason: {result.get('reason')}. "
             f"Suggestion: {result.get('suggestion')}. "
-            f"Telemetry: {json.dumps(self.gateway.snapshot(), sort_keys=True)}. "
+            f"Telemetry: {self._safe_json_dumps(self.gateway.snapshot())}. "
             "Propose one alternative route as strict JSON."
         )
 

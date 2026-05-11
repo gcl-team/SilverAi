@@ -1,4 +1,5 @@
 import importlib.util
+from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 
@@ -196,3 +197,26 @@ def test_extract_planner_json_uses_first_valid_object_when_multiple_exist():
     assert parsed["route"] == "A"
     assert parsed["package_weight"] == 1
     assert parsed["reason"] == "First"
+
+
+def test_propose_and_execute_accepts_non_serializable_metadata():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Express Belt",
+        "package_weight": 5.0,
+        "reason": "Safe default.",
+    }
+
+    metadata = {
+        "created_at": datetime(2026, 5, 11, 9, 30),
+        "payload": {"fragile", "high-priority"},
+        "raw_blob": b"demo-bytes",
+    }
+
+    result = agent.propose_and_execute("PKG-999", metadata)
+
+    assert result["status"] == "success"
+    assert result["execution"]["status"] == "executed"
