@@ -118,10 +118,7 @@ def test_weight_coercion_converts_pounds_to_kg():
     assert round(value, 4) == 2.2680
 
 
-def test_localhost_endpoint_is_allowed(monkeypatch):
-    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:1234")
-    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
-
+def test_default_endpoint_uses_localhost():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
@@ -129,7 +126,7 @@ def test_localhost_endpoint_is_allowed(monkeypatch):
 
 
 def test_remote_endpoint_requires_explicit_opt_in(monkeypatch):
-    monkeypatch.setenv("OPENAI_BASE_URL", "http://example.com:1234")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com")
     monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
 
     gateway = WarehouseGateway()
@@ -144,10 +141,10 @@ def test_remote_endpoint_requires_explicit_opt_in(monkeypatch):
 
 
 def test_remote_endpoint_allowed_with_opt_in(monkeypatch):
-    monkeypatch.setenv("OPENAI_BASE_URL", "http://example.com:1234")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com")
     monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")
 
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
-    assert agent._build_openai_endpoint() == "http://example.com:1234/v1/chat/completions"
+    assert agent._build_openai_endpoint() == "https://example.com/v1/chat/completions"

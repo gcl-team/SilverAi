@@ -56,17 +56,21 @@ class StateGate:
 
 
 class SorterAgent:
+    DEFAULT_BASE_URL = "http://127.0.0.1:1234"
+    DEFAULT_MODEL = "google/gemma-4-e4b"
+    DEFAULT_TIMEOUT_SECONDS = 20.0
+    DEFAULT_RAW_PREVIEW_CHARS = 500
+    DEFAULT_PARSED_PREVIEW_CHARS = 300
+
     def __init__(self, gateway: Any):
         self.gateway = gateway
         self.state = gateway.state
-        self.base_url = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:1234")
-        self.model = os.getenv("OPENAI_MODEL", "google/gemma-4-e4b")
-        self.timeout_seconds = float(os.getenv("OPENAI_TIMEOUT", "20"))
+        self.base_url = os.getenv("OPENAI_BASE_URL", self.DEFAULT_BASE_URL)
+        self.model = self.DEFAULT_MODEL
+        self.timeout_seconds = self.DEFAULT_TIMEOUT_SECONDS
+        self.raw_preview_chars = self.DEFAULT_RAW_PREVIEW_CHARS
+        self.parsed_preview_chars = self.DEFAULT_PARSED_PREVIEW_CHARS
         self.allow_remote_openai = os.getenv("OPENAI_ALLOW_REMOTE", "0") == "1"
-        self.raw_preview_chars = int(os.getenv("OPENAI_RAW_PREVIEW_CHARS", "500"))
-        self.parsed_preview_chars = int(
-            os.getenv("OPENAI_PARSED_PREVIEW_CHARS", "300")
-        )
         self.planner_trace_log: List[Dict[str, Any]] = []
 
     def _build_openai_endpoint(self) -> str:

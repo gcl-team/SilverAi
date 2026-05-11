@@ -59,7 +59,13 @@ The demo script now runs four scenarios in sequence:
 Enable live mode to call an OpenAI-compatible endpoint directly instead of scripted planner output:
 
 ```bash
-OPENAI_RAW_PREVIEW_CHARS=0 OPENAI_PARSED_PREVIEW_CHARS=0 DEMO_USE_LIVE_OPENAI=1 DEMO_TRACE_VERBOSE=1 poetry run python demo/gemma4-industrial-sorter/demo.py
+DEMO_USE_LIVE_OPENAI=1 poetry run python demo/gemma4-industrial-sorter/demo.py
+```
+
+To point the demo at a cloud-hosted OpenAI-compatible model, set the base URL explicitly and opt in to remote access:
+
+```bash
+OPENAI_BASE_URL=https://your-cloud-endpoint.example OPENAI_ALLOW_REMOTE=1 DEMO_USE_LIVE_OPENAI=1 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
 In live mode, the demo prints a planner trace section showing:
@@ -79,10 +85,5 @@ poetry run pytest demo/gemma4-industrial-sorter/tests
 ## Endpoint note
 
 The current demo script uses scripted planner responses to keep CI deterministic.
-The sorter agent also includes a real OpenAI-compatible endpoint path for runtime integration.
+The sorter agent uses localhost OpenAI-compatible defaults in code for runtime integration, but you can override the base URL when you explicitly opt in.
 LM Studio is one example; Ollama or other compatible servers can work too.
-
-Environment variables supported by the agent:
-- OPENAI_BASE_URL (default: http://127.0.0.1:1234)
-- OPENAI_MODEL (default: google/gemma-4-e4b)
-- OPENAI_TIMEOUT (default: 20)

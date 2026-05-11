@@ -12,7 +12,6 @@ except ImportError:
     PrettyTable = None
 
 USE_LIVE_OPENAI = os.getenv("DEMO_USE_LIVE_OPENAI", "0") == "1"
-TRACE_VERBOSE = os.getenv("DEMO_TRACE_VERBOSE", "0") == "1"
 LIVE_PLANNER_MODE_LABEL = "live OpenAI-compatible endpoint"
 
 
@@ -129,7 +128,7 @@ def _print_planner_trace(agent: SorterAgent) -> None:
         if trace.get("parse_error"):
             print(f"     parse_error: {_shorten(trace['parse_error'], 180)}")
 
-        if TRACE_VERBOSE and trace.get("raw_response_preview"):
+        if trace.get("raw_response_preview"):
             print("     raw_preview: " f"{trace['raw_response_preview']}")
 
 
@@ -255,8 +254,6 @@ def run_demo() -> None:
         print("Install for table output: poetry run pip install prettytable")
     if USE_LIVE_OPENAI:
         print("Live OpenAI-compatible endpoint mode enabled via DEMO_USE_LIVE_OPENAI=1")
-        if TRACE_VERBOSE:
-            print("Verbose trace enabled via DEMO_TRACE_VERBOSE=1")
     else:
         print(
             "Scripted planner mode (CI-safe). "
