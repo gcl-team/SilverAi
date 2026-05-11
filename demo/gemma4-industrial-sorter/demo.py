@@ -257,7 +257,7 @@ def run_demo() -> None:
     else:
         print(
             "Scripted planner mode (CI-safe). "
-                "Set DEMO_USE_LIVE_OPENAI=1 for live endpoint mode."
+            "Set DEMO_USE_LIVE_OPENAI=1 for live endpoint mode."
         )
     run_safe_scenario()
     print()
