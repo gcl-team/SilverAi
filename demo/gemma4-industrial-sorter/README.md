@@ -56,16 +56,22 @@ The demo script now runs four scenarios in sequence:
 
 ## Run with a real OpenAI-compatible endpoint and show proof
 
-Enable live mode to call an OpenAI-compatible endpoint directly instead of scripted planner output:
+By default, the demo runs in live endpoint mode and calls an OpenAI-compatible endpoint directly (LM Studio local endpoint by default):
 
 ```bash
-DEMO_USE_LIVE_OPENAI=1 poetry run python demo/gemma4-industrial-sorter/demo.py
+poetry run python demo/gemma4-industrial-sorter/demo.py
+```
+
+To force scripted planner mode (useful for deterministic local checks), set:
+
+```bash
+DEMO_USE_LIVE_OPENAI=0 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
 To point the demo at a cloud-hosted OpenAI-compatible model, set the base URL explicitly and opt in to remote access:
 
 ```bash
-OPENAI_BASE_URL=https://your-cloud-endpoint.example OPENAI_ALLOW_REMOTE=1 DEMO_USE_LIVE_OPENAI=1 poetry run python demo/gemma4-industrial-sorter/demo.py
+OPENAI_BASE_URL=https://your-cloud-endpoint.example OPENAI_ALLOW_REMOTE=1 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
 For non-localhost endpoints, HTTPS is required when OPENAI_ALLOW_REMOTE=1 is set.
@@ -86,6 +92,7 @@ poetry run pytest demo/gemma4-industrial-sorter/tests
 
 ## Endpoint note
 
-The current demo script uses scripted planner responses to keep CI deterministic.
-The sorter agent uses localhost OpenAI-compatible defaults in code for runtime integration, but you can override the base URL when you explicitly opt in.
+The demo defaults to localhost OpenAI-compatible runtime integration.
+Use DEMO_USE_LIVE_OPENAI=0 when you need scripted planner responses for deterministic checks.
+For remote endpoints, explicitly opt in with OPENAI_ALLOW_REMOTE=1 and use HTTPS.
 LM Studio is one example; Ollama or other compatible servers can work too.

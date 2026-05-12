@@ -11,7 +11,12 @@ try:
 except ImportError:
     PrettyTable = None
 
-USE_LIVE_OPENAI = os.getenv("DEMO_USE_LIVE_OPENAI", "0") == "1"
+USE_LIVE_OPENAI = os.getenv("DEMO_USE_LIVE_OPENAI", "1") == "1"
+TRACE_VERBOSE = os.getenv("DEMO_TRACE_VERBOSE", "1") == "1"
+
+if TRACE_VERBOSE:
+    os.environ.setdefault("OPENAI_RAW_PREVIEW_CHARS", "0")
+    os.environ.setdefault("OPENAI_PARSED_PREVIEW_CHARS", "0")
 LIVE_PLANNER_MODE_LABEL = "live OpenAI-compatible endpoint"
 
 
@@ -128,7 +133,7 @@ def _print_planner_trace(agent: SorterAgent) -> None:
         if trace.get("parse_error"):
             print(f"     parse_error: {_shorten(trace['parse_error'], 180)}")
 
-        if trace.get("raw_response_preview"):
+        if TRACE_VERBOSE and trace.get("raw_response_preview"):
             print("     raw_preview: " f"{trace['raw_response_preview']}")
 
 
