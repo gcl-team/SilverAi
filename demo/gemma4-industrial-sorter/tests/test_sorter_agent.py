@@ -119,7 +119,10 @@ def test_weight_coercion_converts_pounds_to_kg():
     assert round(value, 4) == 2.2680
 
 
-def test_default_endpoint_uses_localhost():
+def test_default_endpoint_uses_localhost(monkeypatch):
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
 
