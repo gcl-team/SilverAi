@@ -159,6 +159,30 @@ def test_weight_coercion_converts_pounds_to_kg():
     assert round(value, 4) == 2.2680
 
 
+def test_weight_coercion_rejects_negative_values():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("-5 kg")
+    except ValueError as exc:
+        assert "non-negative" in str(exc)
+    else:
+        raise AssertionError("Expected negative package weight to fail")
+
+
+def test_weight_coercion_rejects_non_finite_values():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight(math.inf)
+    except ValueError as exc:
+        assert "finite" in str(exc)
+    else:
+        raise AssertionError("Expected non-finite package weight to fail")
+
+
 def test_default_endpoint_uses_localhost(monkeypatch):
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)

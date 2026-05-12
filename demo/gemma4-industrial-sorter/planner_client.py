@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import math
 import os
 import re
 from typing import Any, Dict, List
@@ -104,9 +105,17 @@ class PlannerClient:
     def safe_json_dumps(payload: Dict[str, Any]) -> str:
         return json.dumps(payload, sort_keys=True, default=str)
 
+    @staticmethod
+    def _validate_non_negative_weight(value: float, raw_weight: Any) -> float:
+        if not math.isfinite(value):
+            raise ValueError(f"package_weight must be finite: {raw_weight}")
+        if value < 0:
+            raise ValueError(f"package_weight must be non-negative: {raw_weight}")
+        return value
+
     def _coerce_package_weight(self, raw_weight: Any) -> float:
         if isinstance(raw_weight, (int, float)):
-            return float(raw_weight)
+            return self._validate_non_negative_weight(float(raw_weight), raw_weight)
 
         text = str(raw_weight).strip().lower()
         match = re.search(r"[-+]?\d*\.?\d+", text)
@@ -127,9 +136,9 @@ class PlannerClient:
 
         value = float(match.group(0))
         if "lb" in text or "lbs" in text or "pound" in text:
-            return value * 0.45359237
+            value *= 0.45359237
 
-        return value
+        return self._validate_non_negative_weight(value, raw_weight)
 
     def request(self, prompt: str) -> Dict[str, Any]:
         endpoint = self._build_openai_endpoint()
