@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from silver_ai import rules
-from silver_ai.core import guard
-
 from planner_client import PlannerClient
 from sorter_rules import MaxLoad, StateGate
+
+from silver_ai import rules
+from silver_ai.core import guard
 
 
 class SorterAgent:
