@@ -47,27 +47,23 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
-      # 4. Install Dependencies (Reads pyproject.toml)
+      # 4. Install dependencies and project
       - name: Install dependencies
-        run: poetry install --no-interaction --no-root
+        run: poetry install --no-interaction
 
       # 5. Check for ghost dependencies
       - name: Check for Ghost Dependencies
         run: poetry run deptry .
 
-      # 6. Install the library itself
-      - name: Install library
-        run: poetry install --no-interaction
-
-      # 7. Run Security & Linting (Ruff)
+      # 6. Run Security & Linting (Ruff)
       - name: Run Linting & Security (Ruff)
         run: poetry run ruff check .
 
-      # 8. Run Tests
+      # 7. Run Tests
       - name: Run Core Tests
         run: poetry run pytest tests
 
-      # 9. Check the library size
+      # 8. Check the library size
       - name: Build and Check Size
         run: |
           poetry build
@@ -85,7 +81,7 @@ jobs:
             echo "✅ Optimization Pass: Library is lean."
           fi
 
-      # 10. Check the total size with dependencies
+      # 9. Check the total size with dependencies
       - name: Check Total Install Size
         run: |
           echo "🧪 Creating a fresh environment..."
