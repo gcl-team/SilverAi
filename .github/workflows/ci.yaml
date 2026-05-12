@@ -53,9 +53,7 @@ jobs:
 
       # 5. Check for ghost dependencies
       - name: Check for Ghost Dependencies
-        run: |
-          pip install deptry
-          deptry .
+        run: poetry run deptry .
 
       # 6. Install the library itself
       - name: Install library
