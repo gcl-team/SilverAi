@@ -26,15 +26,19 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.14"]
+
     steps:
       # 1. Check out the code
       - uses: actions/checkout@v4
 
       # 2. Install Python
-      - name: Set up Python 3.14
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
 
       # 3. Install Poetry (The Manager)
       - name: Install Poetry
@@ -104,7 +108,7 @@ jobs:
 
           # 4. Fail if > 100KB
           if [ "$LIB_SIZE_KB" -gt 100 ]; then
-            echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 20KB)"
+            echo "❌ ERROR: SilverAi is too fat! (${LIB_SIZE_KB}KB > 100KB)"
             exit 1
           else
             echo "✅ Optimization Pass: Library is lean."
@@ -115,13 +119,17 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.demo_sorter == 'true'
 
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.14"]
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.14
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
