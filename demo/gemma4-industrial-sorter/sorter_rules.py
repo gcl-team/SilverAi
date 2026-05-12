@@ -4,16 +4,28 @@ from typing import Any, Dict, Optional
 
 
 class MaxLoad:
-    """Fail if current belt load exceeds allowed limit."""
+    """Fail if current or projected belt load exceeds allowed limit."""
 
     def __init__(self, max_load: float):
         self.max_load = float(max_load)
 
     def check(self, state: Dict[str, Any]) -> bool:
+        projected = state.get("projected_belt_load")
+        if projected is not None:
+            return float(projected) <= self.max_load
+
         current = float(state.get("belt_load", 0.0))
         return current <= self.max_load
 
     def violation_message(self, state: Dict[str, Any]) -> str:
+        projected = state.get("projected_belt_load")
+        if projected is not None:
+            current = float(state.get("belt_load", 0.0))
+            return (
+                f"Belt overload: current={current:.2f}, "
+                f"projected={float(projected):.2f}. Limit: {self.max_load:.2f}."
+            )
+
         current = float(state.get("belt_load", 0.0))
         return f"Belt overload: {current:.2f}. Limit: {self.max_load:.2f}."
 

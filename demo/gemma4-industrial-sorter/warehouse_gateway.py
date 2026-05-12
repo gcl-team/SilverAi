@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any, Dict
 
 
@@ -47,14 +48,27 @@ class WarehouseGateway:
         This method intentionally assumes pre-flight safety checks were already
         handled by SilverAi in the caller.
         """
-        self.state["belt_load"] = float(self.state.get("belt_load", 0.0)) + float(
-            package_weight
-        )
+        weight = float(package_weight)
+        if not math.isfinite(weight):
+            return {
+                "status": "error",
+                "reason": f"Invalid package_weight: {package_weight}.",
+                "suggestion": "Use a finite, non-negative package_weight value.",
+            }
+
+        if weight < 0:
+            return {
+                "status": "error",
+                "reason": f"Invalid package_weight: {package_weight}.",
+                "suggestion": "Use a finite, non-negative package_weight value.",
+            }
+
+        self.state["belt_load"] = float(self.state.get("belt_load", 0.0)) + weight
 
         return {
             "status": "executed",
             "package_id": package_id,
             "route": route,
-            "package_weight": float(package_weight),
+            "package_weight": weight,
             "gateway_state": self.snapshot(),
         }

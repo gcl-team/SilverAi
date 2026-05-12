@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from planner_client import PlannerClient
 from sorter_rules import MaxLoad, StateGate
@@ -35,6 +35,22 @@ class SorterAgent:
     def _safe_json_dumps(payload: Dict[str, Any]) -> str:
         return PlannerClient.safe_json_dumps(payload)
 
+    def _execute_guarded_with_projection(
+        self,
+        package_id: str,
+        route: str,
+        package_weight: float,
+    ) -> Dict[str, Any]:
+        current_load = float(self.state.get("belt_load", 0.0))
+        self.state["projected_belt_load"] = current_load + float(package_weight)
+        try:
+            return cast(
+                Dict[str, Any],
+                self._execute_guarded(package_id, route, package_weight),
+            )
+        finally:
+            self.state.pop("projected_belt_load", None)
+
     @guard(
         rules=[
             MaxLoad(100.0),
@@ -68,7 +84,7 @@ class SorterAgent:
         if planned.get("status") != "ok":
             return planned
 
-        result = self._execute_guarded(
+        result = self._execute_guarded_with_projection(
             package_id,
             planned["route"],
             float(planned["package_weight"]),
@@ -97,7 +113,7 @@ class SorterAgent:
                 "replan": replanned,
             }
 
-        retry_result = self._execute_guarded(
+        retry_result = self._execute_guarded_with_projection(
             package_id,
             replanned["route"],
             float(replanned["package_weight"]),

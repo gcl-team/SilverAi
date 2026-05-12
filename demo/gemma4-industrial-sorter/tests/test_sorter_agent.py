@@ -1,4 +1,5 @@
 import importlib.util
+import math
 from datetime import datetime
 from pathlib import Path
 from types import ModuleType
@@ -102,6 +103,45 @@ def test_belt_overload_blocked():
 
     assert result["status"] == "blocked"
     assert "Belt overload" in result["block"]["reason"]
+
+
+def test_projected_belt_overload_blocked_before_execution():
+    gateway = WarehouseGateway()
+    gateway.update_belt_load(95.0)
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Heavy Belt",
+        "package_weight": 10.0,
+        "reason": "Large package.",
+    }
+
+    result = agent.propose_and_execute("PKG-004B", {"size": "large"})
+
+    assert result["status"] == "blocked"
+    assert "projected" in result["block"]["reason"]
+    assert gateway.snapshot()["belt_load"] == 95.0
+
+
+def test_gateway_rejects_negative_package_weight():
+    gateway = WarehouseGateway()
+
+    result = gateway.execute_sort_command("PKG-N1", "Any Belt", -5.0)
+
+    assert result["status"] == "error"
+    assert "Invalid package_weight" in result["reason"]
+    assert gateway.snapshot()["belt_load"] == 30.0
+
+
+def test_gateway_rejects_non_finite_package_weight():
+    gateway = WarehouseGateway()
+
+    result = gateway.execute_sort_command("PKG-N2", "Any Belt", math.inf)
+
+    assert result["status"] == "error"
+    assert "Invalid package_weight" in result["reason"]
+    assert gateway.snapshot()["belt_load"] == 30.0
 
 
 def test_weight_coercion_accepts_qualitative_label():
