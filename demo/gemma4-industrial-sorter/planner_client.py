@@ -18,12 +18,26 @@ class PlannerClient:
     DEFAULT_RAW_PREVIEW_CHARS = 500
     DEFAULT_PARSED_PREVIEW_CHARS = 300
 
+    @staticmethod
+    def _int_env(name: str, default: int) -> int:
+        raw = os.getenv(name)
+        if raw is None:
+            return default
+        try:
+            return int(raw)
+        except ValueError:
+            return default
+
     def __init__(self) -> None:
         self.base_url = os.getenv("OPENAI_BASE_URL", self.DEFAULT_BASE_URL)
         self.model = self.DEFAULT_MODEL
         self.timeout_seconds = self.DEFAULT_TIMEOUT_SECONDS
-        self.raw_preview_chars = self.DEFAULT_RAW_PREVIEW_CHARS
-        self.parsed_preview_chars = self.DEFAULT_PARSED_PREVIEW_CHARS
+        self.raw_preview_chars = self._int_env(
+            "OPENAI_RAW_PREVIEW_CHARS", self.DEFAULT_RAW_PREVIEW_CHARS
+        )
+        self.parsed_preview_chars = self._int_env(
+            "OPENAI_PARSED_PREVIEW_CHARS", self.DEFAULT_PARSED_PREVIEW_CHARS
+        )
         self.allow_remote_openai = os.getenv("OPENAI_ALLOW_REMOTE", "0") == "1"
         self.trace_log: List[Dict[str, Any]] = []
 
