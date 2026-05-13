@@ -67,6 +67,8 @@ def test_overheat_blocked_even_after_replan():
 
     assert result["status"] == "blocked"
     assert "motor_temp" in result["block"]["reason"]
+    assert result["block"] == result["retry_block"]
+    assert result["first_block"]["reason"] == result["retry_block"]["reason"]
 
 
 def test_low_battery_blocked():
@@ -85,6 +87,7 @@ def test_low_battery_blocked():
 
     assert result["status"] == "blocked"
     assert "Battery critical" in result["block"]["reason"]
+    assert result["first_block"] == result["block"]
 
 
 def test_belt_overload_blocked():
@@ -103,6 +106,7 @@ def test_belt_overload_blocked():
 
     assert result["status"] == "blocked"
     assert "Belt overload" in result["block"]["reason"]
+    assert result["first_block"] == result["block"]
 
 
 def test_projected_belt_overload_blocked_before_execution():
@@ -121,6 +125,7 @@ def test_projected_belt_overload_blocked_before_execution():
 
     assert result["status"] == "blocked"
     assert "projected" in result["block"]["reason"]
+    assert result["first_block"] == result["block"]
     assert gateway.snapshot()["belt_load"] == 95.0
 
 

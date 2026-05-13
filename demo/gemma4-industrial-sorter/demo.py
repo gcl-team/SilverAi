@@ -42,8 +42,23 @@ def _collect_summary_rows(result: Dict[str, object]) -> list[tuple[str, object]]
         )
 
     block = result.get("block")
+    first_block = result.get("first_block")
+    retry_block = result.get("retry_block")
+
+    block_reason = "n/a"
     if isinstance(block, dict):
-        rows.append(("block_reason", block.get("reason", "n/a")))
+        block_reason = str(block.get("reason", "n/a"))
+        rows.append(("block_reason", block_reason))
+
+    if isinstance(first_block, dict):
+        first_block_reason = str(first_block.get("reason", "n/a"))
+        if first_block_reason != block_reason:
+            rows.append(("first_block_reason", first_block_reason))
+
+    if isinstance(retry_block, dict):
+        retry_block_reason = str(retry_block.get("reason", "n/a"))
+        if retry_block_reason != block_reason:
+            rows.append(("retry_block_reason", retry_block_reason))
 
     execution = result.get("execution")
     if isinstance(execution, dict):

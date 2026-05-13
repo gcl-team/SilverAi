@@ -109,6 +109,7 @@ class SorterAgent:
             return {
                 "status": "blocked",
                 "first_plan": planned,
+                "first_block": result,
                 "block": result,
                 "replan": replanned,
             }
@@ -119,10 +120,14 @@ class SorterAgent:
             float(replanned["package_weight"]),
         )
         final_status = "success" if retry_result.get("status") != "error" else "blocked"
-        return {
+        response = {
             "status": final_status,
             "first_plan": planned,
-            "block": result,
+            "first_block": result,
             "replan": replanned,
             "execution": retry_result,
         }
+        if final_status == "blocked":
+            response["retry_block"] = retry_result
+            response["block"] = retry_result
+        return response
