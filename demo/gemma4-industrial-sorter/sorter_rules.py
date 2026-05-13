@@ -3,6 +3,13 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 
+def _coerce_telemetry_float(value: Any) -> Optional[float]:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 class MaxLoad:
     """Fail if current or projected belt load exceeds allowed limit."""
 
@@ -12,21 +19,34 @@ class MaxLoad:
     def check(self, state: Dict[str, Any]) -> bool:
         projected = state.get("projected_belt_load")
         if projected is not None:
-            return float(projected) <= self.max_load
+            projected_value = _coerce_telemetry_float(projected)
+            if projected_value is None:
+                return False
+            return projected_value <= self.max_load
 
-        current = float(state.get("belt_load", 0.0))
+        current = _coerce_telemetry_float(state.get("belt_load", 0.0))
+        if current is None:
+            return False
         return current <= self.max_load
 
     def violation_message(self, state: Dict[str, Any]) -> str:
         projected = state.get("projected_belt_load")
         if projected is not None:
-            current = float(state.get("belt_load", 0.0))
+            current = _coerce_telemetry_float(state.get("belt_load", 0.0))
+            projected_value = _coerce_telemetry_float(projected)
+            if current is None or projected_value is None:
+                return (
+                    "Belt overload: invalid telemetry for belt_load or "
+                    "projected_belt_load."
+                )
             return (
                 f"Belt overload: current={current:.2f}, "
-                f"projected={float(projected):.2f}. Limit: {self.max_load:.2f}."
+                f"projected={projected_value:.2f}. Limit: {self.max_load:.2f}."
             )
 
-        current = float(state.get("belt_load", 0.0))
+        current = _coerce_telemetry_float(state.get("belt_load", 0.0))
+        if current is None:
+            return "Belt overload: invalid telemetry for belt_load."
         return f"Belt overload: {current:.2f}. Limit: {self.max_load:.2f}."
 
     def suggestion(self) -> str:
@@ -45,13 +65,20 @@ class StateGate:
             return True
 
         raw = state.get(self.key, 999.0)
-        value = float(raw)
+        value = _coerce_telemetry_float(raw)
+        if value is None:
+            return False
         return value <= float(self.max_value)
 
     def violation_message(self, state: Dict[str, Any]) -> str:
         raw = state.get(self.key, 999.0)
-        value = float(raw)
+        value = _coerce_telemetry_float(raw)
         limit = 0.0 if self.max_value is None else float(self.max_value)
+        if value is None:
+            return (
+                f"State gate blocked: invalid telemetry for {self.key}. "
+                f"Limit: {limit:.2f}."
+            )
         return f"State gate blocked: {self.key}={value:.2f}. " f"Limit: {limit:.2f}."
 
     def suggestion(self) -> str:

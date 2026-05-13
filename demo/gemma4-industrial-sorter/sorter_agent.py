@@ -41,7 +41,15 @@ class SorterAgent:
         route: str,
         package_weight: float,
     ) -> Dict[str, Any]:
-        current_load = float(self.state.get("belt_load", 0.0))
+        try:
+            current_load = float(self.state.get("belt_load", 0.0))
+        except (TypeError, ValueError):
+            return {
+                "status": "error",
+                "reason": "Belt overload: invalid telemetry for belt_load.",
+                "suggestion": "Restore valid numeric belt_load telemetry before retrying.",
+                "dry_run": False,
+            }
         self.state["projected_belt_load"] = current_load + float(package_weight)
         try:
             return cast(

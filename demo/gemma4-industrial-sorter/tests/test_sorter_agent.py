@@ -129,6 +129,42 @@ def test_projected_belt_overload_blocked_before_execution():
     assert gateway.snapshot()["belt_load"] == 95.0
 
 
+def test_invalid_belt_load_telemetry_blocks_safely():
+    gateway = WarehouseGateway()
+    gateway.state["belt_load"] = "not-a-number"
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Standard Belt",
+        "package_weight": 3.0,
+        "reason": "Default route.",
+    }
+
+    result = agent.propose_and_execute("PKG-004C", {"priority": "normal"})
+
+    assert result["status"] == "blocked"
+    assert "invalid telemetry" in result["block"]["reason"]
+
+
+def test_invalid_motor_temp_telemetry_blocks_safely():
+    gateway = WarehouseGateway()
+    gateway.state["motor_temp"] = "hot"
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Standard Belt",
+        "package_weight": 3.0,
+        "reason": "Default route.",
+    }
+
+    result = agent.propose_and_execute("PKG-004D", {"priority": "normal"})
+
+    assert result["status"] == "blocked"
+    assert "invalid telemetry" in result["block"]["reason"]
+
+
 def test_gateway_rejects_negative_package_weight():
     gateway = WarehouseGateway()
 
