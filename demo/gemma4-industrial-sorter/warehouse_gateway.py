@@ -49,14 +49,7 @@ class WarehouseGateway:
         handled by SilverAi in the caller.
         """
         weight = float(package_weight)
-        if not math.isfinite(weight):
-            return {
-                "status": "error",
-                "reason": f"Invalid package_weight: {package_weight}.",
-                "suggestion": "Use a finite, non-negative package_weight value.",
-            }
-
-        if weight < 0:
+        if not math.isfinite(weight) or weight < 0:
             return {
                 "status": "error",
                 "reason": f"Invalid package_weight: {package_weight}.",
