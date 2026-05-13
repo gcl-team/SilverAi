@@ -47,7 +47,9 @@ class SorterAgent:
             return {
                 "status": "error",
                 "reason": "Belt overload: invalid telemetry for belt_load.",
-                "suggestion": "Restore valid numeric belt_load telemetry before retrying.",
+                "suggestion": (
+                    "Restore valid numeric belt_load telemetry before retrying."
+                ),
                 "dry_run": False,
             }
         self.state["projected_belt_load"] = current_load + float(package_weight)
