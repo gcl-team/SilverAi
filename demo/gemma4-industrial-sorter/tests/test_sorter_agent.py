@@ -266,6 +266,32 @@ def test_extract_planner_json_uses_first_valid_object_when_multiple_exist():
     assert parsed["reason"] == "First"
 
 
+def test_extract_planner_json_handles_single_line_fenced_payload():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    content = '```{"route":"A","package_weight":1,"reason":"Single"}```'
+
+    parsed = agent._extract_planner_json(content)
+
+    assert parsed["route"] == "A"
+    assert parsed["package_weight"] == 1
+    assert parsed["reason"] == "Single"
+
+
+def test_extract_planner_json_handles_single_line_fenced_payload_with_language():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    content = '```json {"route":"B","package_weight":2,"reason":"Tagged"}```'
+
+    parsed = agent._extract_planner_json(content)
+
+    assert parsed["route"] == "B"
+    assert parsed["package_weight"] == 2
+    assert parsed["reason"] == "Tagged"
+
+
 def test_propose_and_execute_accepts_non_serializable_metadata():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)

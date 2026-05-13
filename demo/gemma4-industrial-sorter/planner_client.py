@@ -79,12 +79,22 @@ class PlannerClient:
         text = content.strip()
 
         if text.startswith("```"):
-            lines = text.splitlines()
-            if lines and lines[0].strip().startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].strip().startswith("```"):
-                lines = lines[:-1]
-            text = "\n".join(lines).strip()
+            # Accept fenced payloads in both multi-line and single-line forms,
+            # with an optional language tag (e.g. ```json ... ```).
+            fenced = re.match(
+                r"^```(?:[A-Za-z0-9_-]+)?\s*(.*?)\s*```$",
+                text,
+                re.DOTALL,
+            )
+            if fenced:
+                text = fenced.group(1).strip()
+            else:
+                lines = text.splitlines()
+                if lines and lines[0].strip().startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip().startswith("```"):
+                    lines = lines[:-1]
+                text = "\n".join(lines).strip()
 
         decoder = json.JSONDecoder()
         for index, char in enumerate(text):
