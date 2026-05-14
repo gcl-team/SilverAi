@@ -63,7 +63,11 @@ class PlannerClient:
                 "OPENAI_ALLOW_REMOTE=1 is set."
             )
 
-        return f"{self.base_url.rstrip('/')}/v1/chat/completions"
+        normalized = parsed._replace(path=parsed.path.rstrip("/"))
+        if normalized.path.endswith("/v1"):
+            normalized = normalized._replace(path=normalized.path[:-3])
+
+        return f"{normalized.geturl().rstrip('/')}/v1/chat/completions"
 
     @staticmethod
     def _is_localhost(hostname: str) -> bool:
@@ -124,11 +128,18 @@ class PlannerClient:
         return value
 
     def _coerce_package_weight(self, raw_weight: Any) -> float:
+        if isinstance(raw_weight, bool):
+            raise ValueError(
+                f"package_weight must be numeric, not boolean: {raw_weight}"
+            )
+
         if isinstance(raw_weight, (int, float)):
             return self._validate_non_negative_weight(float(raw_weight), raw_weight)
 
         text = str(raw_weight).strip().lower()
-        match = re.search(r"[-+]?\d*\.?\d+", text)
+        # Support decimal and scientific notation (e.g. 1e3, -2.5e-1) and
+        # avoid partial matches that could underestimate unsafe weights.
+        match = re.search(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", text)
         if match is None:
             qualitative_map = {
                 "tiny": 0.25,

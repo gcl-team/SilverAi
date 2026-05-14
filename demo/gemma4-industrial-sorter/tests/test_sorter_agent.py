@@ -229,6 +229,38 @@ def test_weight_coercion_converts_pounds_to_kg():
     assert round(value, 4) == 2.2680
 
 
+def test_weight_coercion_supports_scientific_notation():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    value = agent._coerce_package_weight("1e3 kg")
+    assert value == 1000.0
+
+
+def test_weight_coercion_rejects_negative_scientific_notation():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("-1e3 kg")
+    except ValueError as exc:
+        assert "non-negative" in str(exc)
+    else:
+        raise AssertionError("Expected negative scientific notation weight to fail")
+
+
+def test_weight_coercion_rejects_boolean_values():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight(True)
+    except ValueError as exc:
+        assert "not boolean" in str(exc)
+    else:
+        raise AssertionError("Expected boolean package weight to fail")
+
+
 def test_weight_coercion_rejects_negative_values():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
@@ -280,6 +312,26 @@ def test_remote_endpoint_requires_explicit_opt_in(monkeypatch):
 
 def test_remote_endpoint_allowed_with_opt_in(monkeypatch):
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com")
+    monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    assert agent._build_openai_endpoint() == "https://example.com/v1/chat/completions"
+
+
+def test_remote_endpoint_with_v1_base_path_not_duplicated(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com/v1")
+    monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    assert agent._build_openai_endpoint() == "https://example.com/v1/chat/completions"
+
+
+def test_remote_endpoint_with_trailing_slash_v1_base_path_not_duplicated(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com/v1/")
     monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")
 
     gateway = WarehouseGateway()
