@@ -42,10 +42,6 @@ From repo root:
 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
-Expected behavior:
-- Scenario 1 executes successfully under healthy telemetry.
-- Scenario 2 forces motor_temp to 85 and gets blocked by SilverAi, including a blocked retry.
-
 ## Demo scenarios
 
 The demo script now runs four scenarios in sequence:
