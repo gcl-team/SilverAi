@@ -4,6 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 
+from silver_ai.rules import BatteryMin
+
 
 def _load_module(module_name: str, file_name: str) -> ModuleType:
     demo_dir = Path(__file__).resolve().parents[1]
@@ -90,6 +92,31 @@ def test_low_battery_blocked():
     assert result["status"] == "blocked"
     assert "Battery critical" in result["block"]["reason"]
     assert result["first_block"] == result["block"]
+
+
+def test_invalid_battery_telemetry_blocks_safely():
+    gateway = WarehouseGateway()
+    gateway.state["battery"] = "low"
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Standard Belt",
+        "package_weight": 3.0,
+        "reason": "Default route.",
+    }
+
+    result = agent.propose_and_execute("PKG-003B", {"priority": "normal"})
+
+    assert result["status"] == "blocked"
+    assert "invalid telemetry" in result["block"]["reason"]
+
+
+def test_battery_min_rule_rejects_non_finite_telemetry():
+    rule = BatteryMin(min_level=20.0)
+
+    assert not rule.check({"battery": float("nan")})
+    assert "invalid telemetry" in rule.violation_message({"battery": float("nan")})
 
 
 def test_belt_overload_blocked():
