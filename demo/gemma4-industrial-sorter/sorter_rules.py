@@ -23,8 +23,9 @@ class MaxLoad:
     def check(self, state: Dict[str, Any]) -> bool:
         projected = state.get("projected_belt_load")
         if projected is not None:
+            current = _coerce_telemetry_float(state.get("belt_load", 0.0))
             projected_value = _coerce_telemetry_float(projected)
-            if projected_value is None:
+            if current is None or projected_value is None:
                 return False
             return projected_value <= self.max_load
 

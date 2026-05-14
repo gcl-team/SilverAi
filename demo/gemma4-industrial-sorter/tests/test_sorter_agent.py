@@ -229,6 +229,14 @@ def test_boolean_projected_belt_load_blocks_safely():
     assert "invalid telemetry" in rule.violation_message({"projected_belt_load": True})
 
 
+def test_projected_load_requires_valid_current_load_telemetry():
+    rule = MaxLoad(max_load=100.0)
+
+    state = {"belt_load": "bad", "projected_belt_load": 50}
+    assert not rule.check(state)
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
 def test_state_gate_rejects_boolean_telemetry():
     rule = StateGate("motor_temp", max_value=80.0)
 
