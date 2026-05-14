@@ -18,9 +18,11 @@ def _load_module(module_name: str, file_name: str) -> ModuleType:
 
 gateway_module = _load_module("demo_gateway", "warehouse_gateway.py")
 sorter_module = _load_module("demo_sorter", "sorter_agent.py")
+rules_module = _load_module("demo_rules", "sorter_rules.py")
 
 WarehouseGateway = gateway_module.WarehouseGateway
 SorterAgent = sorter_module.SorterAgent
+MaxLoad = rules_module.MaxLoad
 
 
 def test_safe_execution_path():
@@ -163,6 +165,33 @@ def test_invalid_motor_temp_telemetry_blocks_safely():
 
     assert result["status"] == "blocked"
     assert "invalid telemetry" in result["block"]["reason"]
+
+
+def test_non_finite_motor_temp_telemetry_blocks_safely():
+    gateway = WarehouseGateway()
+    gateway.state["motor_temp"] = float("-inf")
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Standard Belt",
+        "package_weight": 3.0,
+        "reason": "Default route.",
+    }
+
+    result = agent.propose_and_execute("PKG-004E", {"priority": "normal"})
+
+    assert result["status"] == "blocked"
+    assert "invalid telemetry" in result["block"]["reason"]
+
+
+def test_non_finite_projected_belt_load_blocks_safely():
+    rule = MaxLoad(max_load=100.0)
+
+    assert not rule.check({"projected_belt_load": float("-inf")})
+    assert "invalid telemetry" in rule.violation_message(
+        {"projected_belt_load": float("-inf")}
+    )
 
 
 def test_gateway_rejects_negative_package_weight():

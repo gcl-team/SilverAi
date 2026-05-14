@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, Optional
 
 
 def _coerce_telemetry_float(value: Any) -> Optional[float]:
     try:
-        return float(value)
+        coerced = float(value)
     except (TypeError, ValueError):
         return None
+    return coerced if math.isfinite(coerced) else None
 
 
 class MaxLoad:
