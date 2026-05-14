@@ -288,6 +288,30 @@ def test_weight_coercion_rejects_boolean_values():
         raise AssertionError("Expected boolean package weight to fail")
 
 
+def test_weight_coercion_rejects_ambiguous_range_values():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("10-20 kg")
+    except ValueError as exc:
+        assert "Ambiguous package_weight" in str(exc)
+    else:
+        raise AssertionError("Expected ambiguous range package weight to fail")
+
+
+def test_weight_coercion_rejects_multiple_numeric_tokens():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("5 kg; box 30x20x10 cm")
+    except ValueError as exc:
+        assert "Ambiguous package_weight" in str(exc)
+    else:
+        raise AssertionError("Expected multi-number package weight to fail")
+
+
 def test_weight_coercion_rejects_negative_values():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)

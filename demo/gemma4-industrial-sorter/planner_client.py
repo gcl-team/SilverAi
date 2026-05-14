@@ -137,10 +137,11 @@ class PlannerClient:
             return self._validate_non_negative_weight(float(raw_weight), raw_weight)
 
         text = str(raw_weight).strip().lower()
-        # Support decimal and scientific notation (e.g. 1e3, -2.5e-1) and
-        # avoid partial matches that could underestimate unsafe weights.
-        match = re.search(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", text)
-        if match is None:
+        # Support decimal and scientific notation (e.g. 1e3, -2.5e-1).
+        # Reject ambiguous strings containing multiple numeric tokens.
+        pattern = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+        matches = list(re.finditer(pattern, text))
+        if not matches:
             qualitative_map = {
                 "tiny": 0.25,
                 "light": 0.75,
@@ -155,7 +156,13 @@ class PlannerClient:
 
             raise ValueError(f"Could not parse package_weight: {raw_weight}")
 
-        value = float(match.group(0))
+        if len(matches) > 1:
+            raise ValueError(
+                "Ambiguous package_weight: multiple numeric tokens found "
+                f"in {raw_weight!r}."
+            )
+
+        value = float(matches[0].group(0))
         if "lb" in text or "lbs" in text or "pound" in text:
             value *= 0.45359237
 
