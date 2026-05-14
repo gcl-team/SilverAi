@@ -264,6 +264,16 @@ def test_gateway_rejects_non_finite_package_weight():
     assert gateway.snapshot()["belt_load"] == 30.0
 
 
+def test_gateway_rejects_non_numeric_package_weight():
+    gateway = WarehouseGateway()
+
+    result = gateway.execute_sort_command("PKG-N3", "Any Belt", "heavy")
+
+    assert result["status"] == "error"
+    assert "Invalid package_weight" in result["reason"]
+    assert gateway.snapshot()["belt_load"] == 30.0
+
+
 def test_weight_coercion_accepts_qualitative_label():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)

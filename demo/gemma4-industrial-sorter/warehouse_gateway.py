@@ -48,7 +48,15 @@ class WarehouseGateway:
         This method intentionally assumes pre-flight safety checks were already
         handled by SilverAi in the caller.
         """
-        weight = float(package_weight)
+        try:
+            weight = float(package_weight)
+        except (TypeError, ValueError):
+            return {
+                "status": "error",
+                "reason": f"Invalid package_weight: {package_weight}.",
+                "suggestion": "Use a finite, non-negative package_weight value.",
+            }
+
         if not math.isfinite(weight) or weight < 0:
             return {
                 "status": "error",
