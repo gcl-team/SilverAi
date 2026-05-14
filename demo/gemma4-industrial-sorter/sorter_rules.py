@@ -5,6 +5,8 @@ from typing import Any, Dict, Optional
 
 
 def _coerce_telemetry_float(value: Any) -> Optional[float]:
+    if isinstance(value, bool):
+        return None
     try:
         coerced = float(value)
     except (TypeError, ValueError):

@@ -25,6 +25,7 @@ rules_module = _load_module("demo_rules", "sorter_rules.py")
 WarehouseGateway = gateway_module.WarehouseGateway
 SorterAgent = sorter_module.SorterAgent
 MaxLoad = rules_module.MaxLoad
+StateGate = rules_module.StateGate
 
 
 def test_safe_execution_path():
@@ -219,6 +220,20 @@ def test_non_finite_projected_belt_load_blocks_safely():
     assert "invalid telemetry" in rule.violation_message(
         {"projected_belt_load": float("-inf")}
     )
+
+
+def test_boolean_projected_belt_load_blocks_safely():
+    rule = MaxLoad(max_load=100.0)
+
+    assert not rule.check({"projected_belt_load": True})
+    assert "invalid telemetry" in rule.violation_message({"projected_belt_load": True})
+
+
+def test_state_gate_rejects_boolean_telemetry():
+    rule = StateGate("motor_temp", max_value=80.0)
+
+    assert not rule.check({"motor_temp": False})
+    assert "invalid telemetry" in rule.violation_message({"motor_temp": False})
 
 
 def test_gateway_rejects_negative_package_weight():
