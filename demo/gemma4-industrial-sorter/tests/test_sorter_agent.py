@@ -317,6 +317,16 @@ def test_gateway_rejects_non_numeric_package_weight():
     assert gateway.snapshot()["belt_load"] == 30.0
 
 
+def test_gateway_rejects_overflowing_package_weight():
+    gateway = WarehouseGateway()
+
+    result = gateway.execute_sort_command("PKG-N4", "Any Belt", 10**10000)
+
+    assert result["status"] == "error"
+    assert "Invalid package_weight" in result["reason"]
+    assert gateway.snapshot()["belt_load"] == 30.0
+
+
 def test_gateway_rejects_boolean_motor_temp_update():
     gateway = WarehouseGateway()
 

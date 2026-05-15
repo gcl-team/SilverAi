@@ -121,7 +121,7 @@ class PlannerClient:
     def safe_json_dumps(payload: Dict[str, Any]) -> str:
         try:
             return json.dumps(payload, sort_keys=True, default=str)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return json.dumps(
                 PlannerClient._make_json_safe(payload),
                 sort_keys=True,

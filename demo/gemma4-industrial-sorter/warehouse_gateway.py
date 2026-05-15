@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 import math
+import sys
 from typing import Any, Dict
+
+
+def _safe_value_preview(value: Any) -> str:
+    if isinstance(value, int) and not isinstance(value, bool):
+        max_digits = sys.get_int_max_str_digits()
+        if max_digits > 0 and value.bit_length() > int(max_digits * 3.322):
+            return f"<int:{value.bit_length()} bits>"
+    return str(value)
 
 
 class WarehouseGateway:
@@ -56,17 +65,21 @@ class WarehouseGateway:
         """
         try:
             weight = float(package_weight)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return {
                 "status": "error",
-                "reason": f"Invalid package_weight: {package_weight}.",
+                "reason": (
+                    f"Invalid package_weight: {_safe_value_preview(package_weight)}."
+                ),
                 "suggestion": "Use a finite, non-negative package_weight value.",
             }
 
         if not math.isfinite(weight) or weight < 0:
             return {
                 "status": "error",
-                "reason": f"Invalid package_weight: {package_weight}.",
+                "reason": (
+                    f"Invalid package_weight: {_safe_value_preview(package_weight)}."
+                ),
                 "suggestion": "Use a finite, non-negative package_weight value.",
             }
 
