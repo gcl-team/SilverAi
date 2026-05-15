@@ -229,6 +229,22 @@ class PlannerClient:
             "ounces",
         }
         matched_units = [token for token in unit_tokens if token in supported_units]
+        unit_category = {
+            "kg": "kg",
+            "kgs": "kg",
+            "kilogram": "kg",
+            "kilograms": "kg",
+            "g": "g",
+            "gram": "g",
+            "grams": "g",
+            "lb": "lb",
+            "lbs": "lb",
+            "pound": "lb",
+            "pounds": "lb",
+            "oz": "oz",
+            "ounce": "oz",
+            "ounces": "oz",
+        }
 
         if not matched_units:
             # If text contains words but none are recognized units, preserve
@@ -238,6 +254,13 @@ class PlannerClient:
             raise ValueError(
                 "Unsupported package_weight unit. "
                 "Use kg, g, lb, or oz (and common singular/plural forms)."
+            )
+
+        matched_categories = {unit_category[token] for token in matched_units}
+        if len(matched_categories) > 1:
+            raise ValueError(
+                "Ambiguous package_weight unit: conflicting unit tokens found "
+                f"in {raw_weight!r}."
             )
 
         if any(token in {"g", "gram", "grams"} for token in matched_units):

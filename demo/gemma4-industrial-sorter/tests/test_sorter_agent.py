@@ -459,6 +459,30 @@ def test_weight_coercion_rejects_unsupported_units():
         raise AssertionError("Expected unsupported unit to fail")
 
 
+def test_weight_coercion_rejects_conflicting_units_kg_and_pounds():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("5 kg pounds")
+    except ValueError as exc:
+        assert "Ambiguous package_weight unit" in str(exc)
+    else:
+        raise AssertionError("Expected conflicting unit tokens to fail")
+
+
+def test_weight_coercion_rejects_conflicting_units_lb_and_kg():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("5 lb kg")
+    except ValueError as exc:
+        assert "Ambiguous package_weight unit" in str(exc)
+    else:
+        raise AssertionError("Expected conflicting unit tokens to fail")
+
+
 def test_weight_coercion_rejects_negative_scientific_notation():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
