@@ -139,8 +139,7 @@ class PlannerClient:
             return [PlannerClient._make_json_safe(item) for item in value]
         if isinstance(value, set):
             return [
-                PlannerClient._make_json_safe(item)
-                for item in sorted(value, key=str)
+                PlannerClient._make_json_safe(item) for item in sorted(value, key=str)
             ]
         if isinstance(value, bool) or value is None:
             return value
