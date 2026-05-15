@@ -43,7 +43,7 @@ class SorterAgent:
     ) -> Dict[str, Any]:
         try:
             current_load = float(self.state.get("belt_load", 0.0))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return {
                 "status": "error",
                 "reason": "Belt overload: invalid telemetry for belt_load.",

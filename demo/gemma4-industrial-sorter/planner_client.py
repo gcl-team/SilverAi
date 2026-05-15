@@ -5,6 +5,7 @@ import json
 import math
 import os
 import re
+import sys
 from typing import Any, Dict, List
 from urllib import error, request
 from urllib.parse import urlparse
@@ -118,7 +119,36 @@ class PlannerClient:
 
     @staticmethod
     def safe_json_dumps(payload: Dict[str, Any]) -> str:
-        return json.dumps(payload, sort_keys=True, default=str)
+        try:
+            return json.dumps(payload, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            return json.dumps(
+                PlannerClient._make_json_safe(payload),
+                sort_keys=True,
+                default=str,
+            )
+
+    @staticmethod
+    def _make_json_safe(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                str(key): PlannerClient._make_json_safe(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [PlannerClient._make_json_safe(item) for item in value]
+        if isinstance(value, set):
+            return [PlannerClient._make_json_safe(item) for item in sorted(value, key=str)]
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, int):
+            max_digits = sys.get_int_max_str_digits()
+            if max_digits > 0 and value.bit_length() > int(max_digits * 3.322):
+                return f"<int:{value.bit_length()} bits>"
+            return value
+        if isinstance(value, float):
+            return value if math.isfinite(value) else str(value)
+        return value
 
     @staticmethod
     def _validate_non_negative_weight(value: float, raw_weight: Any) -> float:

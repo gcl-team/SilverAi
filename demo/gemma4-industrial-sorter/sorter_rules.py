@@ -9,7 +9,7 @@ def _coerce_telemetry_float(value: Any) -> Optional[float]:
         return None
     try:
         coerced = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     return coerced if math.isfinite(coerced) else None
 

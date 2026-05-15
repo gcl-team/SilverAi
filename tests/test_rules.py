@@ -43,6 +43,13 @@ def test_battery_boolean_telemetry_fails_closed():
     assert "invalid telemetry" in rule.violation_message(state)
 
 
+def test_battery_overflow_telemetry_fails_closed():
+    rule = BatteryMin(10)
+    state = {"battery": 10**10000}
+    assert rule.check(state) is False
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
 def test_max_temp_pass():
     rule = MaxTemp(80)
     state = {"temperature": 70}

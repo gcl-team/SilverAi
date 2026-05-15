@@ -178,6 +178,24 @@ def test_invalid_belt_load_telemetry_blocks_safely():
     assert "invalid telemetry" in result["block"]["reason"]
 
 
+def test_overflowing_belt_load_telemetry_blocks_safely():
+    gateway = WarehouseGateway()
+    gateway.state["belt_load"] = 10**10000
+    agent = SorterAgent(gateway)
+
+    agent._planner_request = lambda prompt: {
+        "status": "ok",
+        "route": "Standard Belt",
+        "package_weight": 3.0,
+        "reason": "Default route.",
+    }
+
+    result = agent.propose_and_execute("PKG-004C2", {"priority": "normal"})
+
+    assert result["status"] == "blocked"
+    assert "invalid telemetry" in result["block"]["reason"]
+
+
 def test_invalid_motor_temp_telemetry_blocks_safely():
     gateway = WarehouseGateway()
     gateway.state["motor_temp"] = "hot"
@@ -223,6 +241,14 @@ def test_non_finite_projected_belt_load_blocks_safely():
     )
 
 
+def test_overflowing_projected_belt_load_blocks_safely():
+    rule = MaxLoad(max_load=100.0)
+
+    state = {"belt_load": 30.0, "projected_belt_load": 10**10000}
+    assert not rule.check(state)
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
 def test_boolean_projected_belt_load_blocks_safely():
     rule = MaxLoad(max_load=100.0)
 
@@ -251,6 +277,14 @@ def test_state_gate_rejects_boolean_telemetry():
 
     assert not rule.check({"motor_temp": False})
     assert "invalid telemetry" in rule.violation_message({"motor_temp": False})
+
+
+def test_state_gate_rejects_overflow_telemetry():
+    rule = StateGate("motor_temp", max_value=80.0)
+
+    state = {"motor_temp": 10**10000}
+    assert not rule.check(state)
+    assert "invalid telemetry" in rule.violation_message(state)
 
 
 def test_gateway_rejects_negative_package_weight():
