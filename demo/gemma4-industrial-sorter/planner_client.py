@@ -271,7 +271,10 @@ class PlannerClient:
         )
 
         try:
-            with request.urlopen(req, timeout=self.timeout_seconds) as response:  # noqa: S310
+            with request.urlopen(  # noqa: S310
+                req,
+                timeout=self.timeout_seconds,
+            ) as response:
                 raw = response.read().decode("utf-8")
                 trace["http_status"] = getattr(response, "status", "unknown")
                 if self.raw_preview_chars <= 0:
