@@ -27,13 +27,6 @@ The sorter agent applies these checks before execution:
 - BatteryMin 20: blocks when backup power is critical
 - StateGate on motor_temp <= 80.0: blocks overheating actions
 
-## Files
-
-- demo.py: runnable demo flow with safe and dangerous scenarios
-- warehouse_gateway.py: simulated PLC/gateway telemetry and command execution
-- sorter_agent.py: planner integration, SilverAi guarded execution, one-retry re-plan
-- tests/test_sorter_agent.py: demo integration tests
-
 ## Run
 
 From repo root:
