@@ -439,6 +439,19 @@ def test_remote_endpoint_requires_explicit_opt_in(monkeypatch):
         raise AssertionError("Expected remote endpoint validation to fail")
 
 
+def test_planner_request_returns_error_for_remote_without_opt_in(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    result = agent._planner_request("Plan a route")
+
+    assert result["status"] == "planner_error"
+    assert "OPENAI_ALLOW_REMOTE=1" in result["reason"]
+
+
 def test_remote_endpoint_allowed_with_opt_in(monkeypatch):
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.com")
     monkeypatch.setenv("OPENAI_ALLOW_REMOTE", "1")

@@ -213,13 +213,29 @@ class PlannerClient:
         return self._validate_non_negative_weight(value, raw_weight)
 
     def request(self, prompt: str) -> Dict[str, Any]:
-        endpoint = self._build_openai_endpoint()
         trace: Dict[str, Any] = {
             "source": "openai-compatible endpoint",
-            "endpoint": endpoint,
+            "base_url": self.base_url,
             "model": self.model,
             "prompt_preview": prompt[:200],
         }
+
+        try:
+            endpoint = self._build_openai_endpoint()
+            trace["endpoint"] = endpoint
+        except ValueError as exc:
+            trace["error"] = str(exc)
+            self.trace_log.append(trace)
+            return {
+                "status": "planner_error",
+                "source": "openai-compatible endpoint",
+                "reason": f"OpenAI-compatible endpoint request failed: {exc}",
+                "suggestion": (
+                    "Set a valid OPENAI_BASE_URL and, for remote hosts, "
+                    "enable OPENAI_ALLOW_REMOTE=1 with HTTPS."
+                ),
+            }
+
         payload = {
             "model": self.model,
             "temperature": 0.2,
