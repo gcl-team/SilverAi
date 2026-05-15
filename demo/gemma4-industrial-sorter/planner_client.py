@@ -165,9 +165,12 @@ class PlannerClient:
 
         value = float(matches[0].group(0))
 
-        # Infer units from alphabetic tokens near the numeric value.
-        # Bare numbers default to kilograms.
-        unit_tokens = re.findall(r"[a-z]+", text)
+        # Infer units from alphabetic tokens outside the numeric span.
+        # This avoids treating scientific-notation exponent markers (e/E)
+        # as unit tokens. Bare numbers default to kilograms.
+        number_span = matches[0].span()
+        text_without_number = f"{text[: number_span[0]]} {text[number_span[1] :]}"
+        unit_tokens = re.findall(r"[a-z]+", text_without_number)
         if not unit_tokens:
             return self._validate_non_negative_weight(value, raw_weight)
 

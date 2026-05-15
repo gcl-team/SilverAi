@@ -306,6 +306,14 @@ def test_weight_coercion_supports_scientific_notation():
     assert value == 1000.0
 
 
+def test_weight_coercion_supports_bare_scientific_notation_as_kg():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    value = agent._coerce_package_weight("1e3")
+    assert value == 1000.0
+
+
 def test_weight_coercion_converts_grams_to_kg():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
