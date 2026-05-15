@@ -311,7 +311,7 @@ class PlannerClient:
                     trace["raw_response_preview"] = raw
                 else:
                     trace["raw_response_preview"] = raw[: self.raw_preview_chars]
-        except (error.URLError, TimeoutError, ValueError) as exc:
+        except (error.URLError, TimeoutError, UnicodeDecodeError, ValueError) as exc:
             trace["error"] = str(exc)
             self.trace_log.append(trace)
             return {
