@@ -27,7 +27,7 @@ class MaxLoad:
             projected_value = _coerce_telemetry_float(projected)
             if current is None or projected_value is None:
                 return False
-            return projected_value <= self.max_load
+            return current <= self.max_load and projected_value <= self.max_load
 
         current = _coerce_telemetry_float(state.get("belt_load", 0.0))
         if current is None:
