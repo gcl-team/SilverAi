@@ -329,6 +329,30 @@ def test_weight_coercion_accepts_qualitative_label():
     assert agent._coerce_package_weight("medium") == 5.0
 
 
+def test_weight_coercion_rejects_substring_of_qualitative_label_highlighted():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("highlighted")
+    except ValueError as exc:
+        assert "Could not parse package_weight" in str(exc)
+    else:
+        raise AssertionError("Expected substring-only qualitative match to fail")
+
+
+def test_weight_coercion_rejects_substring_of_qualitative_label_smallest():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("smallest")
+    except ValueError as exc:
+        assert "Could not parse package_weight" in str(exc)
+    else:
+        raise AssertionError("Expected substring-only qualitative match to fail")
+
+
 def test_weight_coercion_converts_pounds_to_kg():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)

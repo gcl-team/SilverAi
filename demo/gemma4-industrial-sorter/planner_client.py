@@ -128,6 +128,22 @@ class PlannerClient:
             raise ValueError(f"package_weight must be non-negative: {raw_weight}")
         return value
 
+    @staticmethod
+    def _qualitative_weight_from_text(text: str) -> float | None:
+        qualitative_map = {
+            "tiny": 0.25,
+            "light": 0.75,
+            "small": 1.0,
+            "medium": 5.0,
+            "large": 12.0,
+            "heavy": 20.0,
+        }
+        tokens = re.findall(r"[a-z]+", text)
+        for token in tokens:
+            if token in qualitative_map:
+                return qualitative_map[token]
+        return None
+
     def _coerce_package_weight(self, raw_weight: Any) -> float:
         if isinstance(raw_weight, bool):
             raise ValueError(
@@ -143,17 +159,9 @@ class PlannerClient:
         pattern = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
         matches = list(re.finditer(pattern, text))
         if not matches:
-            qualitative_map = {
-                "tiny": 0.25,
-                "light": 0.75,
-                "small": 1.0,
-                "medium": 5.0,
-                "large": 12.0,
-                "heavy": 20.0,
-            }
-            for label, weight in qualitative_map.items():
-                if label in text:
-                    return weight
+            qualitative_weight = self._qualitative_weight_from_text(text)
+            if qualitative_weight is not None:
+                return qualitative_weight
 
             raise ValueError(f"Could not parse package_weight: {raw_weight}")
 
@@ -195,8 +203,7 @@ class PlannerClient:
         if not matched_units:
             # If text contains words but none are recognized units, preserve
             # previous qualitative-label behavior and otherwise fail closed.
-            qualitative_labels = {"tiny", "light", "small", "medium", "large", "heavy"}
-            if any(token in qualitative_labels for token in unit_tokens):
+            if self._qualitative_weight_from_text(text_without_number) is not None:
                 return self._validate_non_negative_weight(value, raw_weight)
             raise ValueError(
                 "Unsupported package_weight unit. "
