@@ -21,12 +21,18 @@ class WarehouseGateway:
         return dict(self.state)
 
     def update_motor_temp(self, celsius: float) -> None:
+        if isinstance(celsius, bool):
+            raise ValueError("motor_temp telemetry must be numeric, not boolean.")
         self.state["motor_temp"] = float(celsius)
 
     def update_belt_load(self, load: float) -> None:
+        if isinstance(load, bool):
+            raise ValueError("belt_load telemetry must be numeric, not boolean.")
         self.state["belt_load"] = float(load)
 
     def update_battery(self, level: int) -> None:
+        if isinstance(level, bool):
+            raise ValueError("battery telemetry must be numeric, not boolean.")
         bounded = max(0, min(int(level), 100))
         self.state["battery"] = bounded
 

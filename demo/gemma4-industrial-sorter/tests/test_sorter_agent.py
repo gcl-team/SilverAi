@@ -283,6 +283,45 @@ def test_gateway_rejects_non_numeric_package_weight():
     assert gateway.snapshot()["belt_load"] == 30.0
 
 
+def test_gateway_rejects_boolean_motor_temp_update():
+    gateway = WarehouseGateway()
+
+    try:
+        gateway.update_motor_temp(True)
+    except ValueError as exc:
+        assert "motor_temp telemetry" in str(exc)
+    else:
+        raise AssertionError("Expected boolean motor_temp telemetry to fail")
+
+    assert gateway.snapshot()["motor_temp"] == 42.0
+
+
+def test_gateway_rejects_boolean_belt_load_update():
+    gateway = WarehouseGateway()
+
+    try:
+        gateway.update_belt_load(False)
+    except ValueError as exc:
+        assert "belt_load telemetry" in str(exc)
+    else:
+        raise AssertionError("Expected boolean belt_load telemetry to fail")
+
+    assert gateway.snapshot()["belt_load"] == 30.0
+
+
+def test_gateway_rejects_boolean_battery_update():
+    gateway = WarehouseGateway()
+
+    try:
+        gateway.update_battery(True)
+    except ValueError as exc:
+        assert "battery telemetry" in str(exc)
+    else:
+        raise AssertionError("Expected boolean battery telemetry to fail")
+
+    assert gateway.snapshot()["battery"] == 100
+
+
 def test_weight_coercion_accepts_qualitative_label():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
