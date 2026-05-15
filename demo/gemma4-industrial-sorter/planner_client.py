@@ -164,8 +164,48 @@ class PlannerClient:
             )
 
         value = float(matches[0].group(0))
-        if "lb" in text or "lbs" in text or "pound" in text:
+
+        # Infer units from alphabetic tokens near the numeric value.
+        # Bare numbers default to kilograms.
+        unit_tokens = re.findall(r"[a-z]+", text)
+        if not unit_tokens:
+            return self._validate_non_negative_weight(value, raw_weight)
+
+        supported_units = {
+            "kg",
+            "kgs",
+            "kilogram",
+            "kilograms",
+            "g",
+            "gram",
+            "grams",
+            "lb",
+            "lbs",
+            "pound",
+            "pounds",
+            "oz",
+            "ounce",
+            "ounces",
+        }
+        matched_units = [token for token in unit_tokens if token in supported_units]
+
+        if not matched_units:
+            # If text contains words but none are recognized units, preserve
+            # previous qualitative-label behavior and otherwise fail closed.
+            qualitative_labels = {"tiny", "light", "small", "medium", "large", "heavy"}
+            if any(token in qualitative_labels for token in unit_tokens):
+                return self._validate_non_negative_weight(value, raw_weight)
+            raise ValueError(
+                "Unsupported package_weight unit. "
+                "Use kg, g, lb, or oz (and common singular/plural forms)."
+            )
+
+        if any(token in {"g", "gram", "grams"} for token in matched_units):
+            value /= 1000.0
+        elif any(token in {"lb", "lbs", "pound", "pounds"} for token in matched_units):
             value *= 0.45359237
+        elif any(token in {"oz", "ounce", "ounces"} for token in matched_units):
+            value *= 0.028349523125
 
         return self._validate_non_negative_weight(value, raw_weight)
 

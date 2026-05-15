@@ -298,6 +298,34 @@ def test_weight_coercion_supports_scientific_notation():
     assert value == 1000.0
 
 
+def test_weight_coercion_converts_grams_to_kg():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    value = agent._coerce_package_weight("500 g")
+    assert value == 0.5
+
+
+def test_weight_coercion_converts_ounces_to_kg():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    value = agent._coerce_package_weight("16 oz")
+    assert round(value, 6) == 0.453592
+
+
+def test_weight_coercion_rejects_unsupported_units():
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._coerce_package_weight("5 stone")
+    except ValueError as exc:
+        assert "Unsupported package_weight unit" in str(exc)
+    else:
+        raise AssertionError("Expected unsupported unit to fail")
+
+
 def test_weight_coercion_rejects_negative_scientific_notation():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)

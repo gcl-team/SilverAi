@@ -86,6 +86,11 @@ In live mode, the demo prints a planner trace section showing:
 - raw response preview from the API
 - parsed response preview used by the sorter agent
 
+Planner package_weight parsing assumptions:
+- Numeric values without units are treated as kilograms (kg)
+- Supported explicit units: kg, g, lb/lbs/pound, oz/ounce (including plural forms)
+- Unsupported unit strings are rejected with a planner_error to avoid silent mis-scaling
+
 This output demonstrates the request/response path came from an OpenAI-compatible endpoint.
 
 ## Run tests for this demo only
