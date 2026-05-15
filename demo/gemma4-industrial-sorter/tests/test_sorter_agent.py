@@ -1,5 +1,6 @@
 import importlib.util
 import math
+import urllib.request as urllib_request
 from datetime import datetime
 from pathlib import Path
 from types import ModuleType
@@ -437,6 +438,100 @@ def test_remote_http_endpoint_rejected_with_remote_opt_in(monkeypatch):
         assert "must use https" in str(exc)
     else:
         raise AssertionError("Expected remote HTTP endpoint validation to fail")
+
+
+def test_planner_request_adds_bearer_header_when_api_key_present(monkeypatch):
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-demo-token")
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+    captured_headers = {}
+
+    class _FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            payload = {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"route":"Express Belt","package_weight":5,'
+                                '"reason":"Safe route."}'
+                            )
+                        }
+                    }
+                ]
+            }
+            return agent._safe_json_dumps(payload).encode("utf-8")
+
+    def _fake_urlopen(req, timeout):
+        del timeout
+        captured_headers.update({k.lower(): v for k, v in req.header_items()})
+        return _FakeResponse()
+
+    monkeypatch.setattr(urllib_request, "urlopen", _fake_urlopen)
+
+    result = agent._planner_request("Plan a route")
+
+    assert result["status"] == "ok"
+    assert captured_headers["authorization"] == "Bearer sk-demo-token"
+    assert captured_headers["content-type"] == "application/json"
+
+
+def test_planner_request_omits_bearer_header_when_api_key_blank(monkeypatch):
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "   ")
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+    captured_headers = {}
+
+    class _FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            payload = {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"route":"Standard Belt","package_weight":3,'
+                                '"reason":"Default route."}'
+                            )
+                        }
+                    }
+                ]
+            }
+            return agent._safe_json_dumps(payload).encode("utf-8")
+
+    def _fake_urlopen(req, timeout):
+        del timeout
+        captured_headers.update({k.lower(): v for k, v in req.header_items()})
+        return _FakeResponse()
+
+    monkeypatch.setattr(urllib_request, "urlopen", _fake_urlopen)
+
+    result = agent._planner_request("Plan a route")
+
+    assert result["status"] == "ok"
+    assert "authorization" not in captured_headers
+    assert captured_headers["content-type"] == "application/json"
 
 
 def test_extract_planner_json_ignores_extra_non_json_braces():

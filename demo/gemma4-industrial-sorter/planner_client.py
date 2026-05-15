@@ -33,6 +33,7 @@ class PlannerClient:
         self.base_url = os.getenv("OPENAI_BASE_URL", self.DEFAULT_BASE_URL)
         self.model = self.DEFAULT_MODEL
         self.timeout_seconds = self.DEFAULT_TIMEOUT_SECONDS
+        self.api_key = os.getenv("OPENAI_API_KEY", "").strip()
         self.raw_preview_chars = self._int_env(
             "OPENAI_RAW_PREVIEW_CHARS", self.DEFAULT_RAW_PREVIEW_CHARS
         )
@@ -192,10 +193,14 @@ class PlannerClient:
             ],
         }
         data = json.dumps(payload).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
         req = request.Request(  # noqa: S310
             endpoint,
             data=data,
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
 

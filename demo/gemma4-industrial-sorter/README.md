@@ -70,6 +70,14 @@ To point the demo at a cloud-hosted OpenAI-compatible model, set the base URL ex
 OPENAI_BASE_URL=https://your-cloud-endpoint.example OPENAI_ALLOW_REMOTE=1 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
+If the endpoint requires authentication, also provide an API key. The demo client will send it as a Bearer token in the Authorization header:
+
+```bash
+OPENAI_BASE_URL=https://your-cloud-endpoint.example OPENAI_ALLOW_REMOTE=1 OPENAI_API_KEY=your-token poetry run python demo/gemma4-industrial-sorter/demo.py
+```
+
+For localhost runtimes (for example LM Studio), OPENAI_API_KEY is optional.
+
 For non-localhost endpoints, HTTPS is required when OPENAI_ALLOW_REMOTE=1 is set.
 
 In live mode, the demo prints a planner trace section showing:
