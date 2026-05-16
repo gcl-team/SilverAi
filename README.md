@@ -160,6 +160,7 @@ poetry run pytest
 ### 5. Linting & Security
 We use ruff to enforce PEP8, import sorting, and Bandit security rules.
 ```bash
+poetry run ruff format .
 poetry run ruff check .
 ```
 

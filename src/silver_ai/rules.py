@@ -1,4 +1,15 @@
-from typing import Any, Dict
+import math
+from typing import Any, Dict, Optional
+
+
+def _coerce_finite_float(value: Any) -> Optional[float]:
+    if isinstance(value, bool):
+        return None
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return coerced if math.isfinite(coerced) else None
 
 
 class BatteryMin:
@@ -8,17 +19,26 @@ class BatteryMin:
     Expected State Key: 'battery' (int | float)
     """
 
-    def __init__(self, min_level: int):
-        self.min_level = min_level
+    def __init__(self, min_level: float):
+        self.min_level = float(min_level)
 
     def check(self, state: Dict[str, Any]) -> bool:
         # Fail Safe: If 'battery' key is missing, assume 0%
-        current_level = state.get("battery", 0)
+        current_level = _coerce_finite_float(state.get("battery", 0))
+        if current_level is None:
+            return False
         return current_level >= self.min_level
 
     def violation_message(self, state: Dict[str, Any]) -> str:
-        current_level = state.get("battery", 0)
-        return f"Battery critical: {current_level}%. Required: {self.min_level}%."
+        current_level = _coerce_finite_float(state.get("battery", 0))
+        if current_level is None:
+            return (
+                "Battery critical: invalid telemetry for battery. "
+                f"Required: {self.min_level:g}%."
+            )
+        return (
+            f"Battery critical: {current_level:g}%. " f"Required: {self.min_level:g}%."
+        )
 
     def suggestion(self) -> str:
         return "Connect device to charger before proceeding."

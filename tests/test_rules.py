@@ -22,6 +22,34 @@ def test_battery_missing_key_defaults_to_zero():
     assert "0%" in rule.violation_message(state)
 
 
+def test_battery_invalid_telemetry_fails_closed():
+    rule = BatteryMin(10)
+    state = {"battery": "low"}
+    assert rule.check(state) is False
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
+def test_battery_non_finite_telemetry_fails_closed():
+    rule = BatteryMin(10)
+    state = {"battery": float("nan")}
+    assert rule.check(state) is False
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
+def test_battery_boolean_telemetry_fails_closed():
+    rule = BatteryMin(10)
+    state = {"battery": True}
+    assert rule.check(state) is False
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
+def test_battery_overflow_telemetry_fails_closed():
+    rule = BatteryMin(10)
+    state = {"battery": 10**10000}
+    assert rule.check(state) is False
+    assert "invalid telemetry" in rule.violation_message(state)
+
+
 def test_max_temp_pass():
     rule = MaxTemp(80)
     state = {"temperature": 70}
