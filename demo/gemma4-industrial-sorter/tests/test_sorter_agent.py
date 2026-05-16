@@ -795,6 +795,54 @@ def test_planner_request_returns_error_for_non_utf8_response(monkeypatch):
     assert "request failed" in result["reason"]
 
 
+def test_planner_request_returns_error_for_overflowing_package_weight(monkeypatch):
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    huge_weight = 10**10000
+
+    class _FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            payload = {
+                "choices": [
+                    {
+                        "message": {
+                            "content": agent._safe_json_dumps(
+                                {
+                                    "route": "Standard Belt",
+                                    "package_weight": huge_weight,
+                                    "reason": "Oversized payload.",
+                                }
+                            )
+                        }
+                    }
+                ]
+            }
+            return agent._safe_json_dumps(payload).encode("utf-8")
+
+    def _fake_urlopen(req, timeout):
+        del req, timeout
+        return _FakeResponse()
+
+    monkeypatch.setattr(urllib_request, "urlopen", _fake_urlopen)
+
+    result = agent._planner_request("Plan a route")
+
+    assert result["status"] == "planner_error"
+    assert "Invalid planner response" in result["reason"]
+
+
 def test_extract_planner_json_ignores_extra_non_json_braces():
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)

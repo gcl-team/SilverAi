@@ -196,7 +196,11 @@ class PlannerClient:
             )
 
         if isinstance(raw_weight, (int, float)):
-            return self._validate_non_negative_weight(float(raw_weight), raw_weight)
+            try:
+                numeric_weight = float(raw_weight)
+            except OverflowError as exc:
+                raise ValueError(f"package_weight is too large: {raw_weight}") from exc
+            return self._validate_non_negative_weight(numeric_weight, raw_weight)
 
         text = str(raw_weight).strip().lower()
         # Support decimal and scientific notation (e.g. 1e3, -2.5e-1).
@@ -382,6 +386,7 @@ class PlannerClient:
         except (
             KeyError,
             IndexError,
+            OverflowError,
             ValueError,
             TypeError,
             json.JSONDecodeError,
