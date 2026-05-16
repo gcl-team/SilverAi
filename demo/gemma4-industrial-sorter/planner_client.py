@@ -59,6 +59,11 @@ class PlannerClient:
         if "@" in parsed.netloc:
             raise ValueError("OPENAI_BASE_URL must not include userinfo credentials.")
 
+        if parsed.query or parsed.fragment:
+            raise ValueError(
+                "OPENAI_BASE_URL must not include query parameters or fragments."
+            )
+
         scheme = parsed.scheme.lower()
         hostname = (parsed.hostname or "").lower()
         is_localhost = self._is_localhost(hostname)

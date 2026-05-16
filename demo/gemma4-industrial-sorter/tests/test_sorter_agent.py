@@ -638,6 +638,49 @@ def test_remote_http_endpoint_rejected_with_remote_opt_in(monkeypatch):
         raise AssertionError("Expected remote HTTP endpoint validation to fail")
 
 
+def test_openai_base_url_rejects_query(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:1234/api?api-version=1")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._build_openai_endpoint()
+    except ValueError as exc:
+        assert "must not include query parameters or fragments" in str(exc)
+    else:
+        raise AssertionError("Expected OPENAI_BASE_URL query validation to fail")
+
+
+def test_openai_base_url_rejects_fragment(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:1234/api#v1")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._build_openai_endpoint()
+    except ValueError as exc:
+        assert "must not include query parameters or fragments" in str(exc)
+    else:
+        raise AssertionError("Expected OPENAI_BASE_URL fragment validation to fail")
+
+
+def test_planner_request_returns_error_for_base_url_query(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:1234/api?api-version=1")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    result = agent._planner_request("Plan a route")
+
+    assert result["status"] == "planner_error"
+    assert "must not include query parameters or fragments" in result["reason"]
+
+
 def test_openai_base_url_rejects_userinfo(monkeypatch):
     monkeypatch.setenv("OPENAI_BASE_URL", "http://token@127.0.0.1:1234")
     monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
