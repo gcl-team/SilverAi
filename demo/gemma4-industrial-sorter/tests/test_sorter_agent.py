@@ -638,6 +638,38 @@ def test_remote_http_endpoint_rejected_with_remote_opt_in(monkeypatch):
         raise AssertionError("Expected remote HTTP endpoint validation to fail")
 
 
+def test_openai_base_url_rejects_userinfo(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://token@127.0.0.1:1234")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    try:
+        agent._build_openai_endpoint()
+    except ValueError as exc:
+        assert "must not include userinfo" in str(exc)
+    else:
+        raise AssertionError("Expected OPENAI_BASE_URL userinfo validation to fail")
+
+
+def test_planner_trace_redacts_userinfo_in_base_url(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://token@127.0.0.1:1234")
+    monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)
+
+    gateway = WarehouseGateway()
+    agent = SorterAgent(gateway)
+
+    result = agent._planner_request("Plan a route")
+
+    assert result["status"] == "planner_error"
+    assert "must not include userinfo" in result["reason"]
+    assert agent.planner_trace_log
+    trace = agent.planner_trace_log[-1]
+    assert trace["base_url"] == "http://127.0.0.1:1234"
+    assert "token@" not in trace["base_url"]
+
+
 def test_planner_request_adds_bearer_header_when_api_key_present(monkeypatch):
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     monkeypatch.delenv("OPENAI_ALLOW_REMOTE", raising=False)

@@ -44,8 +44,21 @@ class PlannerClient:
         self.allow_remote_openai = os.getenv("OPENAI_ALLOW_REMOTE", "0") == "1"
         self.trace_log: List[Dict[str, Any]] = []
 
+    @staticmethod
+    def _redact_url_userinfo(url: str) -> str:
+        parsed = urlparse(url)
+        if "@" not in parsed.netloc:
+            return url
+
+        redacted_netloc = parsed.netloc.rsplit("@", 1)[1]
+        return parsed._replace(netloc=redacted_netloc).geturl()
+
     def _build_openai_endpoint(self) -> str:
         parsed = urlparse(self.base_url)
+
+        if "@" in parsed.netloc:
+            raise ValueError("OPENAI_BASE_URL must not include userinfo credentials.")
+
         scheme = parsed.scheme.lower()
         hostname = (parsed.hostname or "").lower()
         is_localhost = self._is_localhost(hostname)
@@ -277,7 +290,7 @@ class PlannerClient:
     def request(self, prompt: str) -> Dict[str, Any]:
         trace: Dict[str, Any] = {
             "source": "openai-compatible endpoint",
-            "base_url": self.base_url,
+            "base_url": self._redact_url_userinfo(self.base_url),
             "model": self.model,
             "prompt_preview": prompt[:200],
         }
