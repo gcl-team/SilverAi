@@ -164,6 +164,26 @@ poetry run ruff format .
 poetry run ruff check .
 ```
 
+### 6. Version Bump (Maintainers)
+Use Poetry to update the package version in `pyproject.toml`.
+
+```bash
+# bump 0.1.8 -> 0.1.9
+poetry version patch
+
+# bump 0.1.8 -> 0.2.0
+poetry version minor
+
+# bump 0.1.8 -> 1.0.0
+poetry version major
+
+# set an explicit version
+poetry version 0.1.9
+
+# verify current version
+poetry version
+```
+
 ## ⚠️ Important Limitations (Read Before Use)
 SilverAi is a **Software Governance Layer**, not a real-time safety system.
 
