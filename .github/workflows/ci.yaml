@@ -28,7 +28,8 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.11", "3.14"]
+        # Python 3.14+ not yet supported due to Phoenix/greenlet compatibility
+        python-version: ["3.11", "3.13"]
 
     steps:
       # 1. Check out the code
@@ -115,7 +116,8 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.11", "3.14"]
+        # Python 3.14+ not yet supported due to Phoenix/greenlet compatibility
+        python-version: ["3.11", "3.13"]
 
     steps:
       - uses: actions/checkout@v4

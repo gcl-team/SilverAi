@@ -21,12 +21,16 @@ classifiers = [
 packages = [{include = "silver_ai", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11, <3.15"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 ruff = "^0.3.0"
 deptry = "^0.23.1"
+arize-phoenix = "^15.10.0"
+arize-phoenix-otel = "^0.16.1"
+greenlet = "^3.5.0"
+prettytable = "^3.10.0"
 
 [tool.deptry]
 ignore_notebooks = true
@@ -35,7 +39,7 @@ exclude = [".venv", "venv", ".git", "__pycache__", "tests", "demo"]
 # --- Ruff Configuration (Linting + Security) ---
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py313"
 
 [tool.ruff.lint]
 # E: pycodestyle, F: pyflakes, I: isort, S: bandit (security)
