@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any, Dict, List, cast
 
+from phoenix_trace import get_phoenix_tracer
 from planner_client import PlannerClient
 from sorter_rules import MaxLoad, StateGate
 
@@ -14,6 +16,19 @@ class SorterAgent:
         self.gateway = gateway
         self.state = gateway.state
         self.planner = PlannerClient()
+        
+        # Initialize trace context attributes (set by propose_and_execute)
+        self._trace_package_id: str | None = None
+        self._trace_scenario_id: str | None = None
+        self._trace_attempt_index: int = 1
+        
+        # Inject Phoenix tracer into core guard if available
+        try:
+            from silver_ai.core import set_guard_tracer
+            tracer = get_phoenix_tracer()
+            set_guard_tracer(tracer)
+        except (ImportError, AttributeError):
+            pass
 
     @property
     def planner_trace_log(self) -> List[Dict[str, Any]]:
@@ -40,7 +55,14 @@ class SorterAgent:
         package_id: str,
         route: str,
         package_weight: float,
+        scenario_id: str | None = None,
+        attempt_index: int = 1,
     ) -> Dict[str, Any]:
+        # Store trace context on instance for guard to access
+        self._trace_package_id = package_id
+        self._trace_scenario_id = scenario_id
+        self._trace_attempt_index = attempt_index
+        
         try:
             current_load = float(self.state.get("belt_load", 0.0))
         except (TypeError, ValueError, OverflowError):
@@ -60,6 +82,10 @@ class SorterAgent:
             )
         finally:
             self.state.pop("projected_belt_load", None)
+            # Clean up trace context
+            self._trace_package_id = None
+            self._trace_scenario_id = None
+            self._trace_attempt_index = 1
 
     @guard(
         rules=[
@@ -84,13 +110,30 @@ class SorterAgent:
         self,
         package_id: str,
         package_metadata: Dict[str, Any],
+        scenario_id: str | None = None,
     ) -> Dict[str, Any]:
+        # Generate scenario_id if not provided
+        if scenario_id is None:
+            scenario_id = str(uuid.uuid4())
+        
+        tracer = get_phoenix_tracer()
+        
         prompt = (
             f"Package id: {package_id}. "
             f"Metadata: {self._safe_json_dumps(package_metadata)}. "
             "Choose a safe sorting route."
         )
         planned = self._planner_request(prompt)
+        
+        # Emit planner event for first attempt
+        tracer.emit_planner_event(
+            scenario_id=scenario_id,
+            package_id=package_id,
+            attempt_index=1,
+            planner_response=planned,
+            gateway_snapshot=self.gateway.snapshot(),
+        )
+        
         if planned.get("status") != "ok":
             return planned
 
@@ -98,6 +141,8 @@ class SorterAgent:
             package_id,
             planned["route"],
             float(planned["package_weight"]),
+            scenario_id=scenario_id,
+            attempt_index=1,
         )
 
         if result.get("status") != "error":
@@ -115,6 +160,16 @@ class SorterAgent:
         )
 
         replanned = self._planner_request(feedback_prompt)
+        
+        # Emit planner event for replan attempt
+        tracer.emit_planner_event(
+            scenario_id=scenario_id,
+            package_id=package_id,
+            attempt_index=2,
+            planner_response=replanned,
+            gateway_snapshot=self.gateway.snapshot(),
+        )
+        
         if replanned.get("status") != "ok":
             return {
                 "status": "blocked",
@@ -128,6 +183,8 @@ class SorterAgent:
             package_id,
             replanned["route"],
             float(replanned["package_weight"]),
+            scenario_id=scenario_id,
+            attempt_index=2,
         )
         final_status = "success" if retry_result.get("status") != "error" else "blocked"
         response = {

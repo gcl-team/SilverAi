@@ -6,6 +6,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    Optional,
     ParamSpec,
     Protocol,
     TypedDict,
@@ -17,6 +18,19 @@ from typing import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Optional Phoenix tracing (for demo instrumentation)
+# The demo can inject a tracer via set_guard_tracer()
+_guard_tracer: Optional[Any] = None
+
+
+def set_guard_tracer(tracer: Any) -> None:
+    """
+    Inject a Phoenix tracer for guard instrumentation.
+    Called by demo to enable tracing without coupling core to Phoenix.
+    """
+    global _guard_tracer
+    _guard_tracer = tracer
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
 
@@ -132,6 +146,38 @@ def guard(
                 if not rule.check(current_state):
                     msg = rule.violation_message(current_state)
                     logger.warning(f"Guard blocked execution: {msg}")
+                    
+                    # Emit guard trace event if tracer is available
+                    if _guard_tracer is not None:
+                        try:
+                            # Get context from instance if available
+                            scenario_id = getattr(instance, "_trace_scenario_id", None)
+                            package_id = getattr(instance, "_trace_package_id", None)
+                            attempt_index = getattr(instance, "_trace_attempt_index", 1)
+                            
+                            # Format rule name as "RuleClass(field)" if possible
+                            rule_name = getattr(rule, "_trace_name", None)
+                            if rule_name is None:
+                                rule_name = rule.__class__.__name__
+                            
+                            # Get gateway snapshot if available
+                            gateway_snapshot = getattr(instance, "gateway", None)
+                            if gateway_snapshot and hasattr(gateway_snapshot, "snapshot"):
+                                gateway_snapshot = gateway_snapshot.snapshot()
+                            else:
+                                gateway_snapshot = current_state.copy()
+                            
+                            if scenario_id and package_id:
+                                _guard_tracer.emit_guard_event(
+                                    scenario_id=scenario_id,
+                                    package_id=package_id,
+                                    attempt_index=attempt_index,
+                                    failed_rule_name=rule_name,
+                                    violation_message=msg,
+                                    gateway_snapshot=gateway_snapshot,
+                                )
+                        except Exception as e:
+                            logger.warning(f"Failed to emit guard trace: {e}")
 
                     # ON-FAIL BEHAVIOR: Raise exception if user requested it
                     # This does not affect ZERO-CRASH POLICY below because

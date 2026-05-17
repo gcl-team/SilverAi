@@ -5,6 +5,7 @@ from typing import Dict, Iterable, Iterator
 
 from sorter_agent import SorterAgent
 from warehouse_gateway import WarehouseGateway
+from evaluator import SilverAiEvaluator, print_evaluator_report
 
 try:
     from prettytable import PrettyTable
@@ -155,6 +156,7 @@ def _print_planner_trace(agent: SorterAgent) -> None:
 def run_safe_scenario() -> None:
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -176,12 +178,17 @@ def run_safe_scenario() -> None:
     _print_result_summary("Scenario 1 Result", result)
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
+    
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario("scenario-1", "PKG-100", result)
+    print_evaluator_report("Scenario 1: Healthy State", eval_summary)
 
 
 def run_overheat_replan_scenario() -> None:
     gateway = WarehouseGateway()
     gateway.update_motor_temp(85.0)
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -209,12 +216,17 @@ def run_overheat_replan_scenario() -> None:
     _print_result_summary("Scenario 2 Result", result)
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
+    
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario("scenario-2", "PKG-200", result)
+    print_evaluator_report("Scenario 2: Overheat with Replan", eval_summary)
 
 
 def run_low_battery_scenario() -> None:
     gateway = WarehouseGateway()
     gateway.update_battery(10)
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -237,12 +249,17 @@ def run_low_battery_scenario() -> None:
     _print_result_summary("Scenario 3 Result", result)
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
+    
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario("scenario-3", "PKG-300", result)
+    print_evaluator_report("Scenario 3: Low Battery", eval_summary)
 
 
 def run_max_load_scenario() -> None:
     gateway = WarehouseGateway()
     gateway.update_belt_load(160.0)
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -265,6 +282,10 @@ def run_max_load_scenario() -> None:
     _print_result_summary("Scenario 4 Result", result)
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
+    
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario("scenario-4", "PKG-400", result)
+    print_evaluator_report("Scenario 4: MaxLoad Violation", eval_summary)
 
 
 def run_demo() -> None:
