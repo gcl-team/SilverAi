@@ -373,6 +373,7 @@ class PlannerClient:
         try:
             parsed = json.loads(raw)
             content = parsed["choices"][0]["message"]["content"]
+            usage = parsed.get("usage") if isinstance(parsed, dict) else None
             as_json = self._extract_planner_json(str(content))
             coerced_weight = self._coerce_package_weight(as_json["package_weight"])
             if self.parsed_preview_chars <= 0:
@@ -380,14 +381,26 @@ class PlannerClient:
             else:
                 trace["parsed_content_preview"] = content[: self.parsed_preview_chars]
             trace["coerced_package_weight"] = coerced_weight
+            if isinstance(usage, dict):
+                trace["prompt_tokens"] = usage.get("prompt_tokens")
+                trace["completion_tokens"] = usage.get("completion_tokens")
+                trace["total_tokens"] = usage.get("total_tokens")
             self.trace_log.append(trace)
-            return {
+            planner_result: Dict[str, Any] = {
                 "status": "ok",
                 "source": "openai-compatible endpoint",
                 "route": str(as_json["route"]),
                 "package_weight": coerced_weight,
                 "reason": str(as_json["reason"]),
+                "model": str(parsed.get("model", self.model))
+                if isinstance(parsed, dict)
+                else self.model,
             }
+            if isinstance(usage, dict):
+                planner_result["prompt_tokens"] = usage.get("prompt_tokens")
+                planner_result["completion_tokens"] = usage.get("completion_tokens")
+                planner_result["total_tokens"] = usage.get("total_tokens")
+            return planner_result
         except (
             KeyError,
             IndexError,

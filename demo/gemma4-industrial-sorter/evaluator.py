@@ -102,6 +102,10 @@ class SilverAiEvaluator:
             scenario_id=scenario_id,
             package_id=package_id,
             attempt_index=attempt_index,
+            planner_status=str(planner_status),
+            planner_route=str(planner_response.get("route", "n/a")),
+            planner_reason=str(planner_response.get("reason", "n/a")),
+            block_reason=guard_response.get("reason") if guard_response else None,
             is_contradiction=is_contradiction,
             failed_rule=failed_rule,
         )
@@ -193,6 +197,6 @@ def print_evaluator_report(
         if verdict.block_reason:
             print(f"     Block Reason: {verdict.block_reason}")
         if verdict.is_contradiction:
-            print(f"     ⚠️ CONTRADICTION: {verdict.contradiction_reason}")
+            print(f"     ⚠️  CONTRADICTION: {verdict.contradiction_reason}")
         else:
             print(f"     ✅ No contradiction")

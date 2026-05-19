@@ -141,6 +141,20 @@ def guard(
                 state_value if isinstance(state_value, dict) else {},
             )
 
+            scenario_id = getattr(instance, "_trace_scenario_id", None)
+            package_id = getattr(instance, "_trace_package_id", None)
+            attempt_index = getattr(instance, "_trace_attempt_index", 1)
+            guard_input = {
+                "function": func.__name__,
+                "args": [repr(arg) for arg in args[1:]],
+                "kwargs": {key: repr(value) for key, value in kwargs.items()},
+            }
+            gateway_snapshot_obj = getattr(instance, "gateway", None)
+            if gateway_snapshot_obj and hasattr(gateway_snapshot_obj, "snapshot"):
+                base_gateway_snapshot = gateway_snapshot_obj.snapshot()
+            else:
+                base_gateway_snapshot = current_state.copy()
+
             # --- Rule Validation ---
             for rule in rules:
                 if not rule.check(current_state):
@@ -150,31 +164,21 @@ def guard(
                     # Emit guard trace event if tracer is available
                     if _guard_tracer is not None:
                         try:
-                            # Get context from instance if available
-                            scenario_id = getattr(instance, "_trace_scenario_id", None)
-                            package_id = getattr(instance, "_trace_package_id", None)
-                            attempt_index = getattr(instance, "_trace_attempt_index", 1)
-                            
                             # Format rule name as "RuleClass(field)" if possible
                             rule_name = getattr(rule, "_trace_name", None)
                             if rule_name is None:
                                 rule_name = rule.__class__.__name__
-                            
-                            # Get gateway snapshot if available
-                            gateway_snapshot = getattr(instance, "gateway", None)
-                            if gateway_snapshot and hasattr(gateway_snapshot, "snapshot"):
-                                gateway_snapshot = gateway_snapshot.snapshot()
-                            else:
-                                gateway_snapshot = current_state.copy()
-                            
+
                             if scenario_id and package_id:
                                 _guard_tracer.emit_guard_event(
                                     scenario_id=scenario_id,
                                     package_id=package_id,
                                     attempt_index=attempt_index,
+                                    guard_input=guard_input,
+                                    outcome="blocked",
+                                    gateway_snapshot=base_gateway_snapshot,
                                     failed_rule_name=rule_name,
                                     violation_message=msg,
-                                    gateway_snapshot=gateway_snapshot,
                                 )
                         except Exception as e:
                             logger.warning(f"Failed to emit guard trace: {e}")
@@ -196,6 +200,26 @@ def guard(
                         "suggestion": rule.suggestion(),
                         "dry_run": False,
                     }
+
+            # Emit pass-path guard event so outcomes are observable for both
+            # allowed and blocked attempts.
+            if _guard_tracer is not None and scenario_id and package_id:
+                try:
+                    evaluated_rules = [
+                        getattr(rule, "_trace_name", rule.__class__.__name__)
+                        for rule in rules
+                    ]
+                    _guard_tracer.emit_guard_event(
+                        scenario_id=scenario_id,
+                        package_id=package_id,
+                        attempt_index=attempt_index,
+                        guard_input=guard_input,
+                        outcome="passed",
+                        gateway_snapshot=base_gateway_snapshot,
+                        evaluated_rules=evaluated_rules,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to emit guard pass trace: {e}")
 
             # --- Dry Run Check ---
             # Check if the user activated Dry Run globally or on the instance

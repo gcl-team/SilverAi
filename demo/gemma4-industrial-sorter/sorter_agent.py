@@ -130,6 +130,7 @@ class SorterAgent:
             scenario_id=scenario_id,
             package_id=package_id,
             attempt_index=1,
+            planner_input=prompt,
             planner_response=planned,
             gateway_snapshot=self.gateway.snapshot(),
         )
@@ -166,6 +167,7 @@ class SorterAgent:
             scenario_id=scenario_id,
             package_id=package_id,
             attempt_index=2,
+            planner_input=feedback_prompt,
             planner_response=replanned,
             gateway_snapshot=self.gateway.snapshot(),
         )
