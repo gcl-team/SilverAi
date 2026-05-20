@@ -61,14 +61,18 @@ class SilverAiEvaluator:
             package_id: Package identifier
             attempt_index: 1 for first plan, 2 for replan, etc.
             planner_response: Dict with status, reason, route, package_weight
-            guard_response: Dict with status, reason (error dict from guard, or None if passed)
+            guard_response: Dict with status, reason
+                (error dict from guard, or None if passed)
             failed_rule: Which rule triggered the guard block (if any)
         
         Returns:
             AttemptVerdictV1 with contradiction analysis
         """
         planner_status = planner_response.get("status", "unknown")
-        guard_blocked = guard_response is not None and guard_response.get("status") == "error"
+        guard_blocked = (
+            guard_response is not None
+            and guard_response.get("status") == "error"
+        )
         
         # Contradiction: planner said "ok" but guard blocked
         is_contradiction = (
@@ -77,10 +81,13 @@ class SilverAiEvaluator:
         
         contradiction_reason = None
         if is_contradiction:
+            blocked_reason = (
+                guard_response.get("reason") if guard_response else "unknown"
+            )
             contradiction_reason = (
                 f"Planner intended '{planner_response.get('route')}' "
                 f"(reason: {planner_response.get('reason')}) "
-                f"but guard blocked: {guard_response.get('reason') if guard_response else 'unknown'}"
+                f"but guard blocked: {blocked_reason}"
             )
         
         verdict = AttemptVerdictV1(
@@ -191,7 +198,10 @@ def print_evaluator_report(
     
     for verdict in eval_summary["attempt_verdicts"]:
         print(f"\n   Attempt {verdict.attempt_index}:")
-        print(f"     Planner: {verdict.planner_status} (reason: {verdict.planner_reason})")
+        print(
+            f"     Planner: {verdict.planner_status} "
+            f"(reason: {verdict.planner_reason})"
+        )
         print(f"     Route: {verdict.planner_route}")
         print(f"     Guard Blocked: {verdict.guard_blocked}")
         if verdict.block_reason:
@@ -199,4 +209,4 @@ def print_evaluator_report(
         if verdict.is_contradiction:
             print(f"     ⚠️  CONTRADICTION: {verdict.contradiction_reason}")
         else:
-            print(f"     ✅ No contradiction")
+            print("     ✅ No contradiction")

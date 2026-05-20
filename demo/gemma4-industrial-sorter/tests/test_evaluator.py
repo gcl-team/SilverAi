@@ -2,14 +2,14 @@
 Tests for Phoenix evaluator and contradiction detection.
 """
 
-import sys
 import os
+import sys
 
 # Add demo folder to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
 import pytest
-from evaluator import SilverAiEvaluator, AttemptVerdictV1
+from evaluator import SilverAiEvaluator
 
 
 class TestEvaluator:
@@ -84,7 +84,7 @@ class TestEvaluator:
         assert eval_summary["attempt_verdicts"][0].is_contradiction is False
     
     def test_no_contradiction_blocked_by_guard_first_attempt_only(self):
-        """No contradiction: first planner failed (error), guard didn't need to block."""
+        """No contradiction: first planner failed, so guard wasn't needed."""
         evaluator = SilverAiEvaluator()
         
         result = {

@@ -6,9 +6,9 @@ import json
 import os
 from typing import Any, Dict, Optional
 
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from opentelemetry import trace as otel_trace
 from opentelemetry.trace import Status, StatusCode
-from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 
 class PhoenixTracer:
@@ -31,7 +31,9 @@ class PhoenixTracer:
             # Registers exporter + global tracer provider using env vars.
             register(
                 endpoint=collector,
-                project_name=os.getenv("PHOENIX_PROJECT_NAME", "gemma4-industrial-sorter"),
+                project_name=os.getenv(
+                    "PHOENIX_PROJECT_NAME", "gemma4-industrial-sorter"
+                ),
                 batch=False,
                 auto_instrument=False,
                 verbose=False,
@@ -109,7 +111,9 @@ class PhoenixTracer:
                         SpanAttributes.LLM_TOKEN_COUNT_COMPLETION, completion_tokens
                     )
                 if isinstance(total_tokens, int):
-                    span.set_attribute(SpanAttributes.LLM_TOKEN_COUNT_TOTAL, total_tokens)
+                    span.set_attribute(
+                        SpanAttributes.LLM_TOKEN_COUNT_TOTAL, total_tokens
+                    )
                 if isinstance(weight, (int, float)):
                     span.set_attribute("planner_weight", float(weight))
 

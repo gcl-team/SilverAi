@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 from typing import Dict, Iterable, Iterator
 
+from evaluator import SilverAiEvaluator, print_evaluator_report
 from sorter_agent import SorterAgent
 from warehouse_gateway import WarehouseGateway
-from evaluator import SilverAiEvaluator, print_evaluator_report
 
 try:
     from prettytable import PrettyTable
