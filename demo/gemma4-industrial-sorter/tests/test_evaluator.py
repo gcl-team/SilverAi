@@ -14,11 +14,11 @@ from evaluator import SilverAiEvaluator
 
 class TestEvaluator:
     """Test contradiction detection logic."""
-    
+
     def test_contradiction_detected_overheat(self):
         """Contradiction: planner=ok but guard blocked by StateGate(motor_temp)."""
         evaluator = SilverAiEvaluator()
-        
+
         result = {
             "status": "blocked",
             "first_plan": {
@@ -44,23 +44,23 @@ class TestEvaluator:
                 "suggestion": "Wait for telemetry to return to safe limits.",
             },
         }
-        
+
         eval_summary = evaluator.evaluate_scenario("scenario-1", "PKG-200", result)
-        
+
         # Should detect contradictions on both attempts
         assert eval_summary["has_contradiction"] is True
         assert len(eval_summary["attempt_verdicts"]) == 2
-        
+
         # Both attempts should have contradictions
         for verdict in eval_summary["attempt_verdicts"]:
             assert verdict.is_contradiction is True
             assert verdict.planner_status == "ok"
             assert verdict.guard_blocked is True
-    
+
     def test_no_contradiction_safe_scenario(self):
         """No contradiction: planner=ok and guard allowed execution."""
         evaluator = SilverAiEvaluator()
-        
+
         result = {
             "status": "success",
             "plan": {
@@ -75,18 +75,18 @@ class TestEvaluator:
                 "package_weight": 5.0,
             },
         }
-        
+
         eval_summary = evaluator.evaluate_scenario("scenario-1", "PKG-100", result)
-        
+
         # Should NOT detect contradiction
         assert eval_summary["has_contradiction"] is False
         assert len(eval_summary["attempt_verdicts"]) == 1
         assert eval_summary["attempt_verdicts"][0].is_contradiction is False
-    
+
     def test_no_contradiction_blocked_by_guard_first_attempt_only(self):
         """No contradiction: first planner failed, so guard wasn't needed."""
         evaluator = SilverAiEvaluator()
-        
+
         result = {
             "status": "error",
             "first_plan": {
@@ -98,9 +98,9 @@ class TestEvaluator:
             },
             "first_block": None,
         }
-        
+
         eval_summary = evaluator.evaluate_scenario("scenario-1", "PKG-300", result)
-        
+
         # Should NOT detect contradiction (planner didn't say "ok")
         assert eval_summary["has_contradiction"] is False
         assert len(eval_summary["attempt_verdicts"]) == 1

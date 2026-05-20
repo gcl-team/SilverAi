@@ -73,8 +73,7 @@ class PhoenixTracer:
                     )
                 else:
                     output_summary = (
-                        f"Planner {planner_status}"
-                        f" | reason={planner_reason or 'n/a'}"
+                        f"Planner {planner_status} | reason={planner_reason or 'n/a'}"
                     )
 
                 span.set_attribute(
@@ -203,13 +202,10 @@ class PhoenixTracer:
 
         try:
             with self._tracer.start_as_current_span("contradiction_verdict") as span:
-                output_summary = (
-                    "## Evaluator Verdict\n\n"
-                    + (
-                        "- **Result**: Contradiction detected"
-                        if is_contradiction
-                        else "- **Result**: No contradiction"
-                    )
+                output_summary = "## Evaluator Verdict\n\n" + (
+                    "- **Result**: Contradiction detected"
+                    if is_contradiction
+                    else "- **Result**: No contradiction"
                 )
                 if failed_rule:
                     output_summary += f"\n- **Rule**: {failed_rule}"

@@ -32,6 +32,7 @@ def set_guard_tracer(tracer: Any) -> None:
     global _guard_tracer
     _guard_tracer = tracer
 
+
 DRY_RUN_FLAG = "_silver_ai_dry_run"
 
 
@@ -160,7 +161,7 @@ def guard(
                 if not rule.check(current_state):
                     msg = rule.violation_message(current_state)
                     logger.warning(f"Guard blocked execution: {msg}")
-                    
+
                     # Emit guard trace event if tracer is available
                     if _guard_tracer is not None:
                         try:

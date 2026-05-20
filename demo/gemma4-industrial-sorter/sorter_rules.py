@@ -86,7 +86,7 @@ class StateGate:
                 f"State gate blocked: invalid telemetry for {self.key}. "
                 f"Limit: {limit:.2f}."
             )
-        return f"State gate blocked: {self.key}={value:.2f}. " f"Limit: {limit:.2f}."
+        return f"State gate blocked: {self.key}={value:.2f}. Limit: {limit:.2f}."
 
     def suggestion(self) -> str:
         return "Wait for telemetry to return to safe limits before retrying."

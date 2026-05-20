@@ -16,15 +16,16 @@ class SorterAgent:
         self.gateway = gateway
         self.state = gateway.state
         self.planner = PlannerClient()
-        
+
         # Initialize trace context attributes (set by propose_and_execute)
         self._trace_package_id: str | None = None
         self._trace_scenario_id: str | None = None
         self._trace_attempt_index: int = 1
-        
+
         # Inject Phoenix tracer into core guard if available
         try:
             from silver_ai.core import set_guard_tracer
+
             tracer = get_phoenix_tracer()
             set_guard_tracer(tracer)
         except (ImportError, AttributeError):
@@ -62,7 +63,7 @@ class SorterAgent:
         self._trace_package_id = package_id
         self._trace_scenario_id = scenario_id
         self._trace_attempt_index = attempt_index
-        
+
         try:
             current_load = float(self.state.get("belt_load", 0.0))
         except (TypeError, ValueError, OverflowError):
@@ -115,16 +116,16 @@ class SorterAgent:
         # Generate scenario_id if not provided
         if scenario_id is None:
             scenario_id = str(uuid.uuid4())
-        
+
         tracer = get_phoenix_tracer()
-        
+
         prompt = (
             f"Package id: {package_id}. "
             f"Metadata: {self._safe_json_dumps(package_metadata)}. "
             "Choose a safe sorting route."
         )
         planned = self._planner_request(prompt)
-        
+
         # Emit planner event for first attempt
         tracer.emit_planner_event(
             scenario_id=scenario_id,
@@ -134,7 +135,7 @@ class SorterAgent:
             planner_response=planned,
             gateway_snapshot=self.gateway.snapshot(),
         )
-        
+
         if planned.get("status") != "ok":
             return planned
 
@@ -161,7 +162,7 @@ class SorterAgent:
         )
 
         replanned = self._planner_request(feedback_prompt)
-        
+
         # Emit planner event for replan attempt
         tracer.emit_planner_event(
             scenario_id=scenario_id,
@@ -171,7 +172,7 @@ class SorterAgent:
             planner_response=replanned,
             gateway_snapshot=self.gateway.snapshot(),
         )
-        
+
         if replanned.get("status") != "ok":
             return {
                 "status": "blocked",
