@@ -131,7 +131,7 @@ def test_safety_stops_low_battery():
 This project uses **Poetry** for dependency management and **Ruff** for strict code quality.
 
 ### 1. Prerequisites
-* **Python 3.11 to 3.13** (3.14+ not yet supported due to Phoenix dependencies);
+* **Python 3.13** (3.14+ not yet supported due to Phoenix dependencies);
 * [Poetry](https://python-poetry.org/docs/) installed.
   ```bash
   pip install poetry
@@ -145,7 +145,7 @@ cd SilverAi
 poetry install
 ```
 
-If you have Python 3.14+ as your system default, Poetry will automatically respect the constraint (`python = ">=3.11, <3.15"` in pyproject.toml) and use a compatible version. If you need to explicitly use a specific Python version, for example 3.13, please run the following at root of this repo.
+If you need to explicitly use Python 3.13, run:
 
 ```bash
 poetry env use python3.13
