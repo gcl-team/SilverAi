@@ -22,12 +22,13 @@ class SorterAgent:
         self._trace_scenario_id: str | None = None
         self._trace_attempt_index: int = 1
 
-        # Inject Phoenix tracer into core guard if available
+        # Inject Phoenix tracer into core guard if tracing is enabled
         try:
             from silver_ai.core import set_guard_tracer
 
             tracer = get_phoenix_tracer()
-            set_guard_tracer(tracer)
+            if tracer.enabled:
+                set_guard_tracer(tracer)
         except (ImportError, AttributeError):
             pass
 
