@@ -1,3 +1,4 @@
+import contextvars
 import functools
 import logging
 from typing import (
@@ -20,17 +21,20 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 # Optional Phoenix tracing (for demo instrumentation)
-# The demo can inject a tracer via set_guard_tracer()
-_guard_tracer: Optional[Any] = None
+# Uses contextvars for thread-safety and async-safety.
+# Each thread/async context can have its own tracer.
+_guard_tracer_var: contextvars.ContextVar[Optional[Any]] = contextvars.ContextVar(
+    "guard_tracer", default=None
+)
 
 
-def set_guard_tracer(tracer: Any) -> None:
+def set_guard_tracer(tracer: Optional[Any]) -> None:
     """
     Inject a Phoenix tracer for guard instrumentation.
     Called by demo to enable tracing without coupling core to Phoenix.
+    Thread-safe and async-safe via contextvars.ContextVar.
     """
-    global _guard_tracer
-    _guard_tracer = tracer
+    _guard_tracer_var.set(tracer)
 
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
@@ -163,7 +167,8 @@ def guard(
                     logger.warning(f"Guard blocked execution: {msg}")
 
                     # Emit guard trace event if tracer is available
-                    if _guard_tracer is not None:
+                    tracer = _guard_tracer_var.get()
+                    if tracer is not None:
                         try:
                             # Format rule name as "RuleClass(field)" if possible
                             rule_name = getattr(rule, "_trace_name", None)
@@ -171,7 +176,7 @@ def guard(
                                 rule_name = rule.__class__.__name__
 
                             if scenario_id and package_id:
-                                _guard_tracer.emit_guard_event(
+                                tracer.emit_guard_event(
                                     scenario_id=scenario_id,
                                     package_id=package_id,
                                     attempt_index=attempt_index,
@@ -204,13 +209,14 @@ def guard(
 
             # Emit pass-path guard event so outcomes are observable for both
             # allowed and blocked attempts.
-            if _guard_tracer is not None and scenario_id and package_id:
+            tracer = _guard_tracer_var.get()
+            if tracer is not None and scenario_id and package_id:
                 try:
                     evaluated_rules = [
                         getattr(rule, "_trace_name", rule.__class__.__name__)
                         for rule in rules
                     ]
-                    _guard_tracer.emit_guard_event(
+                    tracer.emit_guard_event(
                         scenario_id=scenario_id,
                         package_id=package_id,
                         attempt_index=attempt_index,
