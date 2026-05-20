@@ -3,7 +3,7 @@
 **Deterministic Pre-flight validation for AI agents controlling hardware.**
 
 [![PyPI](https://img.shields.io/pypi/v/silver-ai)](https://pypi.org/project/silver-ai/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/gcl-team/SilverAi)](https://github.com/gcl-team/SilverAi/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux--armv7%20%7C%20linux--aarch64-blue)](https://piwheels.org/project/silver-ai/)
 [![SilverAi CI](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml)

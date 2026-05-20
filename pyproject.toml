@@ -21,7 +21,7 @@ classifiers = [
 packages = [{include = "silver_ai", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.11, <3.15"
+python = ">=3.13, <3.14"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

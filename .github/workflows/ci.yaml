@@ -29,7 +29,7 @@ jobs:
     strategy:
       matrix:
         # Python 3.14+ not yet supported due to Phoenix/greenlet compatibility
-        python-version: ["3.11", "3.13"]
+        python-version: ["3.13"]
 
     steps:
       # 1. Check out the code
