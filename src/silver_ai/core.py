@@ -1,4 +1,5 @@
 import contextvars
+from contextlib import contextmanager
 import functools
 import logging
 from typing import (
@@ -42,6 +43,15 @@ _SENSITIVE_KEY_MARKERS = (
 _guard_tracer_var: contextvars.ContextVar[Optional[Any]] = contextvars.ContextVar(
     "guard_tracer", default=None
 )
+_guard_trace_scenario_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "guard_trace_scenario_id", default=None
+)
+_guard_trace_package_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "guard_trace_package_id", default=None
+)
+_guard_trace_attempt_index_var: contextvars.ContextVar[int] = contextvars.ContextVar(
+    "guard_trace_attempt_index", default=1
+)
 
 
 def set_guard_tracer(tracer: Optional[Any]) -> None:
@@ -51,6 +61,24 @@ def set_guard_tracer(tracer: Optional[Any]) -> None:
     Thread-safe and async-safe via contextvars.ContextVar.
     """
     _guard_tracer_var.set(tracer)
+
+
+@contextmanager
+def guard_trace_context(
+    scenario_id: Optional[str],
+    package_id: Optional[str],
+    attempt_index: int = 1,
+):
+    """Set per-invocation trace context for guard and planner tracing."""
+    scenario_token = _guard_trace_scenario_id_var.set(scenario_id)
+    package_token = _guard_trace_package_id_var.set(package_id)
+    attempt_token = _guard_trace_attempt_index_var.set(attempt_index)
+    try:
+        yield
+    finally:
+        _guard_trace_scenario_id_var.reset(scenario_token)
+        _guard_trace_package_id_var.reset(package_token)
+        _guard_trace_attempt_index_var.reset(attempt_token)
 
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
@@ -103,13 +131,6 @@ class GuardViolationError(Exception):
     pass
 
 
-def _safe_repr(value: Any) -> str:
-    try:
-        return repr(value)
-    except Exception:
-        return "<unrepresentable>"
-
-
 def _type_summary(value: Any) -> str:
     return f"<{type(value).__name__}>"
 
@@ -148,6 +169,23 @@ def _safe_gateway_snapshot(
     except Exception:
         logger.exception("Failed to capture gateway snapshot for tracing")
     return current_state.copy()
+
+
+def _resolve_guard_trace_context(instance: Any) -> tuple[Optional[str], Optional[str], int]:
+    scenario_id = _guard_trace_scenario_id_var.get()
+    package_id = _guard_trace_package_id_var.get()
+    attempt_index = _guard_trace_attempt_index_var.get()
+
+    if scenario_id is None:
+        scenario_id = getattr(instance, "_trace_scenario_id", None)
+    if package_id is None:
+        package_id = getattr(instance, "_trace_package_id", None)
+
+    instance_attempt_index = getattr(instance, "_trace_attempt_index", None)
+    if attempt_index == 1 and isinstance(instance_attempt_index, int):
+        attempt_index = instance_attempt_index
+
+    return scenario_id, package_id, attempt_index
 
 
 @overload
@@ -209,9 +247,9 @@ def guard(
                 state_value if isinstance(state_value, dict) else {},
             )
 
-            scenario_id = getattr(instance, "_trace_scenario_id", None)
-            package_id = getattr(instance, "_trace_package_id", None)
-            attempt_index = getattr(instance, "_trace_attempt_index", 1)
+            scenario_id, package_id, attempt_index = _resolve_guard_trace_context(
+                instance
+            )
 
             # --- Rule Validation ---
             for rule in rules:
