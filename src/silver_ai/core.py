@@ -104,6 +104,18 @@ def _safe_guard_input(
     }
 
 
+def _safe_gateway_snapshot(
+    instance: Any, current_state: Dict[str, Any]
+) -> Dict[str, Any]:
+    try:
+        gateway = getattr(instance, "gateway", None)
+        if gateway is not None and hasattr(gateway, "snapshot"):
+            return gateway.snapshot()
+    except Exception as e:
+        logger.warning(f"Failed to capture gateway snapshot for tracing: {e}")
+    return current_state.copy()
+
+
 @overload
 def guard(
     rules: List[GuardRule],
@@ -166,11 +178,6 @@ def guard(
             scenario_id = getattr(instance, "_trace_scenario_id", None)
             package_id = getattr(instance, "_trace_package_id", None)
             attempt_index = getattr(instance, "_trace_attempt_index", 1)
-            gateway_snapshot_obj = getattr(instance, "gateway", None)
-            if gateway_snapshot_obj and hasattr(gateway_snapshot_obj, "snapshot"):
-                base_gateway_snapshot = gateway_snapshot_obj.snapshot()
-            else:
-                base_gateway_snapshot = current_state.copy()
 
             # --- Rule Validation ---
             for rule in rules:
@@ -194,7 +201,9 @@ def guard(
                                 attempt_index=attempt_index,
                                 guard_input=guard_input,
                                 outcome="blocked",
-                                gateway_snapshot=base_gateway_snapshot,
+                                gateway_snapshot=_safe_gateway_snapshot(
+                                    instance, current_state
+                                ),
                                 failed_rule_name=rule_name,
                                 violation_message=msg,
                             )
@@ -235,7 +244,9 @@ def guard(
                         attempt_index=attempt_index,
                         guard_input=guard_input,
                         outcome="passed",
-                        gateway_snapshot=base_gateway_snapshot,
+                        gateway_snapshot=_safe_gateway_snapshot(
+                            instance, current_state
+                        ),
                         evaluated_rules=evaluated_rules,
                     )
                 except Exception as e:
