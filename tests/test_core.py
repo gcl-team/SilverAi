@@ -6,6 +6,7 @@ from silver_ai.core import (
     DRY_RUN_FLAG,
     GuardResult,
     GuardViolationError,
+    _safe_gateway_snapshot,
     guard,
     set_guard_tracer,
 )
@@ -482,3 +483,33 @@ def test_guard_input_uses_type_summaries_for_passed_trace_events():
         assert guard_input["kwargs"] == {}
     finally:
         set_guard_tracer(None)
+
+
+def test_safe_gateway_snapshot_falls_back_for_none_snapshot():
+    class _BadGateway:
+        def snapshot(self):
+            return None
+
+    class _Device:
+        gateway = _BadGateway()
+
+    current_state = {"battery": 88}
+    snapshot = _safe_gateway_snapshot(_Device(), current_state)
+
+    assert snapshot == current_state
+    assert snapshot is not current_state
+
+
+def test_safe_gateway_snapshot_falls_back_for_non_dict_snapshot():
+    class _BadGateway:
+        def snapshot(self):
+            return ["not", "a", "dict"]
+
+    class _Device:
+        gateway = _BadGateway()
+
+    current_state = {"motor_temp": 42.0}
+    snapshot = _safe_gateway_snapshot(_Device(), current_state)
+
+    assert snapshot == current_state
+    assert snapshot is not current_state

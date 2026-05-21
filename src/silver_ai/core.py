@@ -144,7 +144,9 @@ def _safe_gateway_snapshot(
     try:
         gateway = getattr(instance, "gateway", None)
         if gateway is not None and hasattr(gateway, "snapshot"):
-            return gateway.snapshot()
+            snapshot = gateway.snapshot()
+            if isinstance(snapshot, dict):
+                return snapshot
     except Exception as e:
         logger.warning(f"Failed to capture gateway snapshot for tracing: {e}")
     return current_state.copy()
