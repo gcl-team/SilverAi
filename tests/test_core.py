@@ -521,3 +521,33 @@ def test_safe_gateway_snapshot_falls_back_for_non_dict_snapshot():
 
     assert snapshot == current_state
     assert snapshot is not current_state
+
+
+def test_safe_gateway_snapshot_redacts_sensitive_keys_recursively():
+    class _Gateway:
+        def snapshot(self):
+            return {
+                "motor_temp": 42.0,
+                "auth": "super-secret",
+                "nested": {
+                    "token": "abc123",
+                    "status": "ok",
+                },
+                "items": [
+                    {"password": "pw-1", "value": 7},
+                    {"name": "box"},
+                ],
+            }
+
+    class _Device:
+        gateway = _Gateway()
+
+    snapshot = _safe_gateway_snapshot(_Device(), {"battery": 88})
+
+    assert snapshot["motor_temp"] == 42.0
+    assert snapshot["auth"] == _REDACTED_VALUE
+    assert snapshot["nested"]["token"] == _REDACTED_VALUE
+    assert snapshot["nested"]["status"] == "ok"
+    assert snapshot["items"][0]["password"] == _REDACTED_VALUE
+    assert snapshot["items"][0]["value"] == 7
+    assert snapshot["items"][1]["name"] == "box"

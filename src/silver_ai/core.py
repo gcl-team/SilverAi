@@ -1,7 +1,7 @@
 import contextvars
-from contextlib import contextmanager
 import functools
 import logging
+from contextlib import contextmanager
 from typing import (
     Any,
     Callable,
@@ -43,11 +43,11 @@ _SENSITIVE_KEY_MARKERS = (
 _guard_tracer_var: contextvars.ContextVar[Optional[Any]] = contextvars.ContextVar(
     "guard_tracer", default=None
 )
-_guard_trace_scenario_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "guard_trace_scenario_id", default=None
+_guard_trace_scenario_id_var: contextvars.ContextVar[Optional[str]] = (
+    contextvars.ContextVar("guard_trace_scenario_id", default=None)
 )
-_guard_trace_package_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "guard_trace_package_id", default=None
+_guard_trace_package_id_var: contextvars.ContextVar[Optional[str]] = (
+    contextvars.ContextVar("guard_trace_package_id", default=None)
 )
 _guard_trace_attempt_index_var: contextvars.ContextVar[int] = contextvars.ContextVar(
     "guard_trace_attempt_index", default=1
@@ -157,6 +157,29 @@ def _safe_guard_input(func_name: str, args: tuple, kwargs: dict) -> Dict[str, An
     }
 
 
+def _sanitize_trace_snapshot_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized: Dict[str, Any] = {}
+        for key, item in value.items():
+            string_key = str(key)
+            if _is_sensitive_key(string_key):
+                sanitized[string_key] = _REDACTED_VALUE
+            else:
+                sanitized[string_key] = _sanitize_trace_snapshot_value(item)
+        return sanitized
+
+    if isinstance(value, list):
+        return [_sanitize_trace_snapshot_value(item) for item in value]
+
+    if isinstance(value, tuple):
+        return [_sanitize_trace_snapshot_value(item) for item in value]
+
+    if isinstance(value, set):
+        return [_sanitize_trace_snapshot_value(item) for item in sorted(value, key=str)]
+
+    return value
+
+
 def _safe_gateway_snapshot(
     instance: Any, current_state: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -165,13 +188,15 @@ def _safe_gateway_snapshot(
         if gateway is not None and hasattr(gateway, "snapshot"):
             snapshot = gateway.snapshot()
             if isinstance(snapshot, dict):
-                return snapshot
+                return _sanitize_trace_snapshot_value(snapshot)
     except Exception:
         logger.exception("Failed to capture gateway snapshot for tracing")
-    return current_state.copy()
+    return _sanitize_trace_snapshot_value(current_state.copy())
 
 
-def _resolve_guard_trace_context(instance: Any) -> tuple[Optional[str], Optional[str], int]:
+def _resolve_guard_trace_context(
+    instance: Any,
+) -> tuple[Optional[str], Optional[str], int]:
     scenario_id = _guard_trace_scenario_id_var.get()
     package_id = _guard_trace_package_id_var.get()
     attempt_index = _guard_trace_attempt_index_var.get()
