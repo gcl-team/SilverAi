@@ -3,7 +3,7 @@
 **Deterministic Pre-flight validation for AI agents controlling hardware.**
 
 [![PyPI](https://img.shields.io/pypi/v/silver-ai)](https://pypi.org/project/silver-ai/)
-[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/gcl-team/SilverAi)](https://github.com/gcl-team/SilverAi/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux--armv7%20%7C%20linux--aarch64-blue)](https://piwheels.org/project/silver-ai/)
 [![SilverAi CI](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml)
@@ -131,7 +131,7 @@ def test_safety_stops_low_battery():
 This project uses **Poetry** for dependency management and **Ruff** for strict code quality.
 
 ### 1. Prerequisites
-* **Python 3.13** (only 3.13 is supported; 3.14+ is not compatible due to Phoenix dependencies);
+* **Python 3.13+** (the demo requires Python 3.13 due to Phoenix/greenlet compatibility; the core library supports 3.13+);
 * [Poetry](https://python-poetry.org/docs/) installed.
   ```bash
   pip install poetry
