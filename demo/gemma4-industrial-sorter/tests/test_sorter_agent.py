@@ -6,7 +6,6 @@ from conftest import load_demo_module
 
 from silver_ai.rules import BatteryMin
 
-
 gateway_module = load_demo_module("demo_gateway", "warehouse_gateway.py")
 sorter_module = load_demo_module("demo_sorter", "sorter_agent.py")
 rules_module = load_demo_module("demo_rules", "sorter_rules.py")

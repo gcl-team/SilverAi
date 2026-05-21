@@ -5,7 +5,6 @@ Tests for Phoenix evaluator and contradiction detection.
 import pytest
 from conftest import load_demo_module
 
-
 evaluator_module = load_demo_module("demo_evaluator", "evaluator.py")
 SilverAiEvaluator = evaluator_module.SilverAiEvaluator
 

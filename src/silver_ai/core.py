@@ -119,9 +119,7 @@ def _is_sensitive_key(key: Any) -> bool:
     return any(marker in normalized for marker in _SENSITIVE_KEY_MARKERS)
 
 
-def _safe_guard_input(
-    func_name: str, args: tuple, kwargs: dict
-) -> Dict[str, Any]:
+def _safe_guard_input(func_name: str, args: tuple, kwargs: dict) -> Dict[str, Any]:
     safe_kwargs: Dict[str, str] = {}
     for key, value in kwargs.items():
         if _is_sensitive_key(key):
@@ -228,9 +226,7 @@ def guard(
                             rule_name = getattr(
                                 rule, "_trace_name", rule.__class__.__name__
                             )
-                            guard_input = _safe_guard_input(
-                                func.__name__, args, kwargs
-                            )
+                            guard_input = _safe_guard_input(func.__name__, args, kwargs)
                             tracer.emit_guard_event(
                                 scenario_id=scenario_id,
                                 package_id=package_id,

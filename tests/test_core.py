@@ -1,8 +1,9 @@
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 import pytest
 
 from silver_ai.core import (
+    _REDACTED_VALUE,
     DRY_RUN_FLAG,
     GuardResult,
     GuardViolationError,
@@ -62,6 +63,9 @@ class MockDevice:
         self.state = state if state else {}
         setattr(self, DRY_RUN_FLAG, dry_run)
         self.action_performed = False
+        self._trace_scenario_id: Optional[str] = None
+        self._trace_package_id: Optional[str] = None
+        self._trace_attempt_index: int = 1
 
     # Safe action that always passes
     @guard(rules=[AlwaysTrueRule()])
@@ -257,9 +261,9 @@ class StubTracer:
         guard_input: Dict[str, Any],
         outcome: str,
         gateway_snapshot: Dict[str, Any],
-        failed_rule_name: str = None,
-        violation_message: str = None,
-        evaluated_rules: list = None,
+        failed_rule_name: Optional[str] = None,
+        violation_message: Optional[str] = None,
+        evaluated_rules: Optional[list[Any]] = None,
     ) -> None:
         if self.fail_on_emit:
             raise RuntimeError("Simulated tracer failure")
@@ -443,12 +447,16 @@ def test_guard_input_sanitizes_sensitive_kwargs_for_trace_events():
         device._trace_scenario_id = "scenario-sensitive"
         device._trace_package_id = "pkg-sensitive"
 
+        sensitive_kwargs = {
+            "token": "demo-token",
+            "api_key": "demo-api-key",
+            "password": "demo-password",
+            "request_id": 123,
+        }
+
         result = device.dangerous_action_with_payload(
             "secret payload value",
-            token="sk-test-123",
-            api_key="api-key-456",
-            password="pw-789",
-            request_id=123,
+            **sensitive_kwargs,
         )
 
         assert isinstance(result, dict)
@@ -457,9 +465,9 @@ def test_guard_input_sanitizes_sensitive_kwargs_for_trace_events():
         assert len(tracer.blocked_events) == 1
         guard_input = tracer.blocked_events[0]["guard_input"]
         assert guard_input["args"] == ["<str>"]
-        assert guard_input["kwargs"]["token"] == "<redacted>"
-        assert guard_input["kwargs"]["api_key"] == "<redacted>"
-        assert guard_input["kwargs"]["password"] == "<redacted>"
+        assert guard_input["kwargs"]["token"] == _REDACTED_VALUE
+        assert guard_input["kwargs"]["api_key"] == _REDACTED_VALUE
+        assert guard_input["kwargs"]["password"] == _REDACTED_VALUE
         assert guard_input["kwargs"]["request_id"] == "<int>"
     finally:
         set_guard_tracer(None)
