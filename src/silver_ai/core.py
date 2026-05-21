@@ -323,8 +323,12 @@ def guard(
                         "dry_run": False,
                     }
 
-            # Emit pass-path guard event so outcomes are observable for both
-            # allowed and blocked attempts.
+            # --- Dry Run Check ---
+            # Check if the user activated Dry Run globally or on the instance
+            is_dry_run = getattr(instance, DRY_RUN_FLAG, False)
+
+            # Emit trace event after dry-run state is known so observability
+            # consumers do not confuse a skipped execution with a passed one.
             tracer = _guard_tracer_var.get()
             if tracer is not None and scenario_id and package_id:
                 try:
@@ -338,18 +342,14 @@ def guard(
                         package_id=package_id,
                         attempt_index=attempt_index,
                         guard_input=guard_input,
-                        outcome="passed",
+                        outcome="skipped" if is_dry_run else "passed",
                         gateway_snapshot=_safe_gateway_snapshot(
                             instance, current_state
                         ),
                         evaluated_rules=evaluated_rules,
                     )
                 except Exception:
-                    logger.exception("Failed to emit guard pass trace")
-
-            # --- Dry Run Check ---
-            # Check if the user activated Dry Run globally or on the instance
-            is_dry_run = getattr(instance, DRY_RUN_FLAG, False)
+                    logger.exception("Failed to emit guard trace")
 
             if is_dry_run:
                 logger.info(f"Dry Run: {func.__name__} passed checks but was skipped.")

@@ -251,6 +251,7 @@ class StubTracer:
     def __init__(self, fail_on_emit: bool = False):
         self.blocked_events = []
         self.passed_events = []
+        self.skipped_events = []
         self.fail_on_emit = fail_on_emit
 
     def emit_guard_event(
@@ -282,6 +283,17 @@ class StubTracer:
             )
         elif outcome == "passed":
             self.passed_events.append(
+                {
+                    "scenario_id": scenario_id,
+                    "package_id": package_id,
+                    "attempt_index": attempt_index,
+                    "guard_input": guard_input,
+                    "outcome": outcome,
+                    "evaluated_rules": evaluated_rules,
+                }
+            )
+        elif outcome == "skipped":
+            self.skipped_events.append(
                 {
                     "scenario_id": scenario_id,
                     "package_id": package_id,
@@ -434,6 +446,35 @@ def test_guard_swallows_tracer_failure_on_passed():
         assert result == "Executed"
         assert device.action_performed is True
 
+    finally:
+        set_guard_tracer(None)
+
+
+def test_guard_emits_skipped_event_for_dry_run():
+    tracer = StubTracer()
+    set_guard_tracer(tracer)
+
+    try:
+        device = MockDevice(dry_run=True)
+        device._trace_scenario_id = "scenario-dry-run"
+        device._trace_package_id = "pkg-dry-run"
+        device._trace_attempt_index = 3
+
+        result = device.safe_action()
+        result_dict = cast(GuardResult, result)
+
+        assert result_dict["status"] == "success"
+        assert device.action_performed is False
+
+        assert len(tracer.skipped_events) == 1
+        event = tracer.skipped_events[0]
+        assert event["scenario_id"] == "scenario-dry-run"
+        assert event["package_id"] == "pkg-dry-run"
+        assert event["attempt_index"] == 3
+        assert event["outcome"] == "skipped"
+        assert "AlwaysTrueRule" in event["evaluated_rules"]
+        assert len(tracer.passed_events) == 0
+        assert len(tracer.blocked_events) == 0
     finally:
         set_guard_tracer(None)
 
