@@ -146,7 +146,7 @@ def _safe_gateway_snapshot(
             if isinstance(snapshot, dict):
                 return snapshot
     except Exception as e:
-        logger.warning(f"Failed to capture gateway snapshot for tracing: {e}")
+        logger.exception("Failed to capture gateway snapshot for tracing")
     return current_state.copy()
 
 
@@ -239,8 +239,8 @@ def guard(
                                 failed_rule_name=rule_name,
                                 violation_message=msg,
                             )
-                        except Exception as e:
-                            logger.warning(f"Failed to emit guard trace: {e}")
+                        except Exception:
+                            logger.exception("Failed to emit guard trace")
 
                     # ON-FAIL BEHAVIOR: Raise exception if user requested it
                     # This does not affect ZERO-CRASH POLICY below because
@@ -281,8 +281,8 @@ def guard(
                         ),
                         evaluated_rules=evaluated_rules,
                     )
-                except Exception as e:
-                    logger.warning(f"Failed to emit guard pass trace: {e}")
+                except Exception:
+                    logger.exception("Failed to emit guard pass trace")
 
             # --- Dry Run Check ---
             # Check if the user activated Dry Run globally or on the instance
