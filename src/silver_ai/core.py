@@ -87,6 +87,23 @@ class GuardViolationError(Exception):
     pass
 
 
+def _safe_repr(value: Any) -> str:
+    try:
+        return repr(value)
+    except Exception:
+        return "<unrepresentable>"
+
+
+def _safe_guard_input(
+    func_name: str, args: tuple, kwargs: dict
+) -> Dict[str, Any]:
+    return {
+        "function": func_name,
+        "args": [_safe_repr(arg) for arg in args[1:]],
+        "kwargs": {key: _safe_repr(value) for key, value in kwargs.items()},
+    }
+
+
 @overload
 def guard(
     rules: List[GuardRule],
@@ -149,11 +166,6 @@ def guard(
             scenario_id = getattr(instance, "_trace_scenario_id", None)
             package_id = getattr(instance, "_trace_package_id", None)
             attempt_index = getattr(instance, "_trace_attempt_index", 1)
-            guard_input = {
-                "function": func.__name__,
-                "args": [repr(arg) for arg in args[1:]],
-                "kwargs": {key: repr(value) for key, value in kwargs.items()},
-            }
             gateway_snapshot_obj = getattr(instance, "gateway", None)
             if gateway_snapshot_obj and hasattr(gateway_snapshot_obj, "snapshot"):
                 base_gateway_snapshot = gateway_snapshot_obj.snapshot()
@@ -168,24 +180,24 @@ def guard(
 
                     # Emit guard trace event if tracer is available
                     tracer = _guard_tracer_var.get()
-                    if tracer is not None:
+                    if tracer is not None and scenario_id and package_id:
                         try:
-                            # Format rule name as "RuleClass(field)" if possible
-                            rule_name = getattr(rule, "_trace_name", None)
-                            if rule_name is None:
-                                rule_name = rule.__class__.__name__
-
-                            if scenario_id and package_id:
-                                tracer.emit_guard_event(
-                                    scenario_id=scenario_id,
-                                    package_id=package_id,
-                                    attempt_index=attempt_index,
-                                    guard_input=guard_input,
-                                    outcome="blocked",
-                                    gateway_snapshot=base_gateway_snapshot,
-                                    failed_rule_name=rule_name,
-                                    violation_message=msg,
-                                )
+                            rule_name = getattr(
+                                rule, "_trace_name", rule.__class__.__name__
+                            )
+                            guard_input = _safe_guard_input(
+                                func.__name__, args, kwargs
+                            )
+                            tracer.emit_guard_event(
+                                scenario_id=scenario_id,
+                                package_id=package_id,
+                                attempt_index=attempt_index,
+                                guard_input=guard_input,
+                                outcome="blocked",
+                                gateway_snapshot=base_gateway_snapshot,
+                                failed_rule_name=rule_name,
+                                violation_message=msg,
+                            )
                         except Exception as e:
                             logger.warning(f"Failed to emit guard trace: {e}")
 
@@ -216,6 +228,7 @@ def guard(
                         getattr(rule, "_trace_name", rule.__class__.__name__)
                         for rule in rules
                     ]
+                    guard_input = _safe_guard_input(func.__name__, args, kwargs)
                     tracer.emit_guard_event(
                         scenario_id=scenario_id,
                         package_id=package_id,
