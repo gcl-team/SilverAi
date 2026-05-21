@@ -35,6 +35,12 @@ From repo root:
 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
+If you want Phoenix traces or the pretty table output used by the demo, install the optional demo dependency group first:
+
+```bash
+poetry install --with demo
+```
+
 ## Run with Phoenix tracing (beginner-friendly)
 
 If you want Phoenix traces while running the demo, use these commands.

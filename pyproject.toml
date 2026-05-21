@@ -27,9 +27,14 @@ python = ">=3.13, <4.0"
 pytest = "^8.0"
 ruff = "^0.15.13"
 deptry = "^0.23.1"
-arize-phoenix = {version = "^15.10.0", python = ">=3.13,<3.15"}
-arize-phoenix-otel = {version = "^0.16.1", python = ">=3.13,<3.15"}
-greenlet = "^3.5.0"
+
+[tool.poetry.group.demo]
+optional = true
+
+[tool.poetry.group.demo.dependencies]
+arize-phoenix = {version = "^15.10.0", python = ">=3.13,<3.14"}
+arize-phoenix-otel = {version = "^0.16.1", python = ">=3.13,<3.14"}
+greenlet = {version = "^3.5.0", python = ">=3.13,<3.14"}
 prettytable = "^3.10.0"
 
 [tool.deptry]

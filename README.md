@@ -145,6 +145,12 @@ cd SilverAi
 poetry install
 ```
 
+If you want the Phoenix-backed demo dependencies, install the optional demo group on Python 3.13:
+
+```bash
+poetry install --with demo
+```
+
 If you need to explicitly use Python 3.13, run:
 
 ```bash
