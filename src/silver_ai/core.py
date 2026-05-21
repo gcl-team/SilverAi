@@ -145,7 +145,7 @@ def _safe_gateway_snapshot(
             snapshot = gateway.snapshot()
             if isinstance(snapshot, dict):
                 return snapshot
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to capture gateway snapshot for tracing")
     return current_state.copy()
 
