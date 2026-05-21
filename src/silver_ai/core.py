@@ -54,13 +54,23 @@ _guard_trace_attempt_index_var: contextvars.ContextVar[int] = contextvars.Contex
 )
 
 
-def set_guard_tracer(tracer: Optional[Any]) -> None:
+def set_guard_tracer(tracer: Optional[Any]) -> contextvars.Token[Optional[Any]]:
     """
     Inject a Phoenix tracer for guard instrumentation.
     Called by demo to enable tracing without coupling core to Phoenix.
     Thread-safe and async-safe via contextvars.ContextVar.
     """
-    _guard_tracer_var.set(tracer)
+    return _guard_tracer_var.set(tracer)
+
+
+@contextmanager
+def guard_tracer_context(tracer: Optional[Any]):
+    """Temporarily override the active guard tracer and restore the previous one."""
+    token = set_guard_tracer(tracer)
+    try:
+        yield
+    finally:
+        _guard_tracer_var.reset(token)
 
 
 @contextmanager

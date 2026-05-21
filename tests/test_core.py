@@ -7,8 +7,10 @@ from silver_ai.core import (
     DRY_RUN_FLAG,
     GuardResult,
     GuardViolationError,
+    _guard_tracer_var,
     _safe_gateway_snapshot,
     guard,
+    guard_tracer_context,
     set_guard_tracer,
 )
 
@@ -398,6 +400,22 @@ def test_guard_no_trace_without_ids():
 
     finally:
         set_guard_tracer(None)
+
+
+def test_guard_tracer_context_restores_previous_tracer():
+    outer_tracer = object()
+    inner_tracer = object()
+    outer_token = set_guard_tracer(outer_tracer)
+
+    try:
+        assert _guard_tracer_var.get() is outer_tracer
+
+        with guard_tracer_context(inner_tracer):
+            assert _guard_tracer_var.get() is inner_tracer
+
+        assert _guard_tracer_var.get() is outer_tracer
+    finally:
+        _guard_tracer_var.reset(outer_token)
 
 
 def test_guard_swallows_tracer_failure_on_blocked():
