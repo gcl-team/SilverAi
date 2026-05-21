@@ -20,6 +20,22 @@ from typing import (
 
 logger = logging.getLogger(__name__)
 
+_REDACTED_VALUE = "<redacted>"
+_SENSITIVE_KEY_MARKERS = (
+    "token",
+    "password",
+    "passwd",
+    "secret",
+    "api_key",
+    "apikey",
+    "authorization",
+    "auth",
+    "cookie",
+    "session",
+    "credential",
+    "bearer",
+)
+
 # Optional Phoenix tracing (for demo instrumentation)
 # Uses contextvars for thread-safety and async-safety.
 # Each thread/async context can have its own tracer.
@@ -94,13 +110,31 @@ def _safe_repr(value: Any) -> str:
         return "<unrepresentable>"
 
 
+def _type_summary(value: Any) -> str:
+    return f"<{type(value).__name__}>"
+
+
+def _is_sensitive_key(key: Any) -> bool:
+    normalized = str(key).strip().lower()
+    return any(marker in normalized for marker in _SENSITIVE_KEY_MARKERS)
+
+
 def _safe_guard_input(
     func_name: str, args: tuple, kwargs: dict
 ) -> Dict[str, Any]:
+    safe_kwargs: Dict[str, str] = {}
+    for key, value in kwargs.items():
+        if _is_sensitive_key(key):
+            safe_kwargs[str(key)] = _REDACTED_VALUE
+        else:
+            safe_kwargs[str(key)] = _type_summary(value)
+
     return {
         "function": func_name,
-        "args": [_safe_repr(arg) for arg in args[1:]],
-        "kwargs": {key: _safe_repr(value) for key, value in kwargs.items()},
+        # Positional arguments have no semantic names here; keep type-only
+        # summaries to reduce accidental data leakage in trace payloads.
+        "args": [_type_summary(arg) for arg in args[1:]],
+        "kwargs": safe_kwargs,
     }
 
 

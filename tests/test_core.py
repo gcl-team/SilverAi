@@ -80,6 +80,11 @@ class MockDevice:
         self.action_performed = True
         return "Should Crash"
 
+    @guard(rules=[AlwaysFalseRule()])
+    def dangerous_action_with_payload(self, payload, **kwargs):
+        self.action_performed = True
+        return "Should Not Happen"
+
 
 # The shared rule instance (Simulating the @guard instantiation)
 # By doing this, we can create multiple devices sharing the same rule instance.
@@ -264,6 +269,7 @@ class StubTracer:
                     "scenario_id": scenario_id,
                     "package_id": package_id,
                     "attempt_index": attempt_index,
+                    "guard_input": guard_input,
                     "outcome": outcome,
                     "failed_rule_name": failed_rule_name,
                     "violation_message": violation_message,
@@ -275,6 +281,7 @@ class StubTracer:
                     "scenario_id": scenario_id,
                     "package_id": package_id,
                     "attempt_index": attempt_index,
+                    "guard_input": guard_input,
                     "outcome": outcome,
                     "evaluated_rules": evaluated_rules,
                 }
@@ -422,5 +429,56 @@ def test_guard_swallows_tracer_failure_on_passed():
         assert result == "Executed"
         assert device.action_performed is True
 
+    finally:
+        set_guard_tracer(None)
+
+
+def test_guard_input_sanitizes_sensitive_kwargs_for_trace_events():
+    tracer = StubTracer()
+    set_guard_tracer(tracer)
+
+    try:
+        device = MockDevice()
+        device._trace_scenario_id = "scenario-sensitive"
+        device._trace_package_id = "pkg-sensitive"
+
+        result = device.dangerous_action_with_payload(
+            "secret payload value",
+            token="sk-test-123",
+            api_key="api-key-456",
+            password="pw-789",
+            request_id=123,
+        )
+
+        assert isinstance(result, dict)
+        assert result["status"] == "error"
+
+        assert len(tracer.blocked_events) == 1
+        guard_input = tracer.blocked_events[0]["guard_input"]
+        assert guard_input["args"] == ["<str>"]
+        assert guard_input["kwargs"]["token"] == "<redacted>"
+        assert guard_input["kwargs"]["api_key"] == "<redacted>"
+        assert guard_input["kwargs"]["password"] == "<redacted>"
+        assert guard_input["kwargs"]["request_id"] == "<int>"
+    finally:
+        set_guard_tracer(None)
+
+
+def test_guard_input_uses_type_summaries_for_passed_trace_events():
+    tracer = StubTracer()
+    set_guard_tracer(tracer)
+
+    try:
+        device = MockDevice()
+        device._trace_scenario_id = "scenario-pass"
+        device._trace_package_id = "pkg-pass"
+
+        result = device.safe_action()
+
+        assert result == "Executed"
+        assert len(tracer.passed_events) == 1
+        guard_input = tracer.passed_events[0]["guard_input"]
+        assert guard_input["args"] == []
+        assert guard_input["kwargs"] == {}
     finally:
         set_guard_tracer(None)
