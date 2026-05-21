@@ -1,27 +1,15 @@
-import importlib.util
 import math
 import urllib.request as urllib_request
 from datetime import datetime
-from pathlib import Path
-from types import ModuleType
+
+from conftest import load_demo_module
 
 from silver_ai.rules import BatteryMin
 
 
-def _load_module(module_name: str, file_name: str) -> ModuleType:
-    demo_dir = Path(__file__).resolve().parents[1]
-    module_path = demo_dir / file_name
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load module from {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-gateway_module = _load_module("demo_gateway", "warehouse_gateway.py")
-sorter_module = _load_module("demo_sorter", "sorter_agent.py")
-rules_module = _load_module("demo_rules", "sorter_rules.py")
+gateway_module = load_demo_module("demo_gateway", "warehouse_gateway.py")
+sorter_module = load_demo_module("demo_sorter", "sorter_agent.py")
+rules_module = load_demo_module("demo_rules", "sorter_rules.py")
 
 WarehouseGateway = gateway_module.WarehouseGateway
 SorterAgent = sorter_module.SorterAgent

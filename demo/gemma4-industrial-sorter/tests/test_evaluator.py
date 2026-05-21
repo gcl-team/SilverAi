@@ -2,14 +2,12 @@
 Tests for Phoenix evaluator and contradiction detection.
 """
 
-import os
-import sys
-
-# Add parent demo folder to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-
 import pytest
-from evaluator import SilverAiEvaluator
+from conftest import load_demo_module
+
+
+evaluator_module = load_demo_module("demo_evaluator", "evaluator.py")
+SilverAiEvaluator = evaluator_module.SilverAiEvaluator
 
 
 class TestEvaluator:
