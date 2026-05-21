@@ -374,6 +374,17 @@ class PlannerClient:
             parsed = json.loads(raw)
             content = parsed["choices"][0]["message"]["content"]
             usage = parsed.get("usage") if isinstance(parsed, dict) else None
+            resolved_model = self.model
+            if isinstance(parsed, dict):
+                parsed_model = parsed.get("model")
+                if isinstance(parsed_model, str):
+                    candidate_model = parsed_model.strip()
+                    if candidate_model:
+                        resolved_model = candidate_model
+                elif parsed_model is not None:
+                    candidate_model = str(parsed_model).strip()
+                    if candidate_model:
+                        resolved_model = candidate_model
             as_json = self._extract_planner_json(str(content))
             coerced_weight = self._coerce_package_weight(as_json["package_weight"])
             if self.parsed_preview_chars <= 0:
@@ -381,6 +392,7 @@ class PlannerClient:
             else:
                 trace["parsed_content_preview"] = content[: self.parsed_preview_chars]
             trace["coerced_package_weight"] = coerced_weight
+            trace["response_model"] = resolved_model
             if isinstance(usage, dict):
                 trace["prompt_tokens"] = usage.get("prompt_tokens")
                 trace["completion_tokens"] = usage.get("completion_tokens")
@@ -392,9 +404,7 @@ class PlannerClient:
                 "route": str(as_json["route"]),
                 "package_weight": coerced_weight,
                 "reason": str(as_json["reason"]),
-                "model": str(parsed.get("model", self.model))
-                if isinstance(parsed, dict)
-                else self.model,
+                "model": resolved_model,
             }
             if isinstance(usage, dict):
                 planner_result["prompt_tokens"] = usage.get("prompt_tokens")
