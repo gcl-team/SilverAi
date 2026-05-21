@@ -3,7 +3,7 @@
 **Deterministic Pre-flight validation for AI agents controlling hardware.**
 
 [![PyPI](https://img.shields.io/pypi/v/silver-ai)](https://pypi.org/project/silver-ai/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/gcl-team/SilverAi)](https://github.com/gcl-team/SilverAi/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux--armv7%20%7C%20linux--aarch64-blue)](https://piwheels.org/project/silver-ai/)
 [![SilverAi CI](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/gcl-team/SilverAi/actions/workflows/ci.yaml)
@@ -131,11 +131,11 @@ def test_safety_stops_low_battery():
 This project uses **Poetry** for dependency management and **Ruff** for strict code quality.
 
 ### 1. Prerequisites
-* Python 3.11+;
+* **Python 3.13+** (the demo requires Python 3.13 due to Phoenix/greenlet compatibility; the core library supports 3.13+);
 * [Poetry](https://python-poetry.org/docs/) installed.
   ```bash
   pip install poetry
-  ```  
+  ```
 
 ### 2. Setup
 Clone the repo and install dependencies (including the virtual environment):
@@ -143,6 +143,18 @@ Clone the repo and install dependencies (including the virtual environment):
 git clone https://github.com/gcl-team/SilverAi.git
 cd SilverAi
 poetry install
+```
+
+If you want the Phoenix-backed demo dependencies, install the optional demo group on Python 3.13:
+
+```bash
+poetry install --with demo
+```
+
+If you need to explicitly use Python 3.13, run:
+
+```bash
+poetry env use python3.13
 ```
 
 ### 3. Running the Demo
@@ -162,6 +174,26 @@ We use ruff to enforce PEP8, import sorting, and Bandit security rules.
 ```bash
 poetry run ruff format .
 poetry run ruff check .
+```
+
+### 6. Version Bump (Maintainers)
+Use Poetry to update the package version in `pyproject.toml`.
+
+```bash
+# bump 0.1.8 -> 0.1.9
+poetry version patch
+
+# bump 0.1.8 -> 0.2.0
+poetry version minor
+
+# bump 0.1.8 -> 1.0.0
+poetry version major
+
+# set an explicit version
+poetry version 0.1.9
+
+# verify current version
+poetry version
 ```
 
 ## ⚠️ Important Limitations (Read Before Use)

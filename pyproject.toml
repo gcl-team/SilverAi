@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "silver-ai"
-version = "0.1.8"
+version = "0.2.0"
 description = "Deterministic state-guardrails for agentic hardware & critical systems."
 authors = ["Goh Chun Lin <chunlin@live.com.sg>"]
 readme = "README.md"
@@ -21,12 +21,21 @@ classifiers = [
 packages = [{include = "silver_ai", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.13, <4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
-ruff = "^0.3.0"
+ruff = "^0.15.13"
 deptry = "^0.23.1"
+
+[tool.poetry.group.demo]
+optional = true
+
+[tool.poetry.group.demo.dependencies]
+arize-phoenix = {version = "^15.10.0", python = ">=3.13,<3.14"}
+arize-phoenix-otel = {version = "^0.16.1", python = ">=3.13,<3.14"}
+greenlet = {version = "^3.5.0", python = ">=3.13,<3.14"}
+prettytable = "^3.10.0"
 
 [tool.deptry]
 ignore_notebooks = true
@@ -35,7 +44,7 @@ exclude = [".venv", "venv", ".git", "__pycache__", "tests", "demo"]
 # --- Ruff Configuration (Linting + Security) ---
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py313"
 
 [tool.ruff.lint]
 # E: pycodestyle, F: pyflakes, I: isort, S: bandit (security)

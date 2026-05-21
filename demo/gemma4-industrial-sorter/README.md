@@ -35,6 +35,31 @@ From repo root:
 poetry run python demo/gemma4-industrial-sorter/demo.py
 ```
 
+If you want Phoenix traces or the pretty table output used by the demo, install the optional demo dependency group first:
+
+```bash
+poetry install --with demo
+```
+
+## Run with Phoenix tracing (beginner-friendly)
+
+If you want Phoenix traces while running the demo, use these commands.
+
+1. Start Phoenix (first terminal, from repo root):
+
+```bash
+poetry run phoenix serve --host 127.0.0.1 --port 6006
+```
+
+2. Run demo with Phoenix env vars (second terminal, from repo root):
+
+```bash
+PHOENIX_COLLECTOR_ENDPOINT=http://127.0.0.1:6006 \
+poetry run python demo/gemma4-industrial-sorter/demo.py
+```
+
+After the run, open http://127.0.0.1:6006 to inspect traces.
+
 ## Demo scenarios
 
 The demo script now runs four scenarios in sequence:

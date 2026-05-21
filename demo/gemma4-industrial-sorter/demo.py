@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Dict, Iterable, Iterator
 
+from evaluator import SilverAiEvaluator, print_evaluator_report
 from sorter_agent import SorterAgent
 from warehouse_gateway import WarehouseGateway
 
@@ -138,8 +139,7 @@ def _print_planner_trace(agent: SorterAgent) -> None:
 
         if trace.get("parsed_content_preview"):
             print(
-                "     parsed_preview: "
-                f"{_shorten(trace['parsed_content_preview'], 180)}"
+                f"     parsed_preview: {_shorten(trace['parsed_content_preview'], 180)}"
             )
 
         if trace.get("error"):
@@ -149,12 +149,14 @@ def _print_planner_trace(agent: SorterAgent) -> None:
             print(f"     parse_error: {_shorten(trace['parse_error'], 180)}")
 
         if TRACE_VERBOSE and trace.get("raw_response_preview"):
-            print("     raw_preview: " f"{trace['raw_response_preview']}")
+            print(f"     raw_preview: {trace['raw_response_preview']}")
 
 
 def run_safe_scenario() -> None:
+    scenario_id = "scenario-1"
     gateway = WarehouseGateway()
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -168,7 +170,9 @@ def run_safe_scenario() -> None:
             ]
         )
 
-    result = agent.propose_and_execute("PKG-100", {"priority": "high"})
+    result = agent.propose_and_execute(
+        "PKG-100", {"priority": "high"}, scenario_id=scenario_id
+    )
 
     print("--- Scenario 1: Healthy state ---")
     planner_mode = LIVE_PLANNER_MODE_LABEL if USE_LIVE_OPENAI else "scripted"
@@ -177,11 +181,17 @@ def run_safe_scenario() -> None:
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario(scenario_id, "PKG-100", result)
+    print_evaluator_report("Scenario 1: Healthy State", eval_summary)
+
 
 def run_overheat_replan_scenario() -> None:
+    scenario_id = "scenario-2"
     gateway = WarehouseGateway()
     gateway.update_motor_temp(85.0)
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -201,7 +211,9 @@ def run_overheat_replan_scenario() -> None:
             ]
         )
 
-    result = agent.propose_and_execute("PKG-200", {"priority": "urgent"})
+    result = agent.propose_and_execute(
+        "PKG-200", {"priority": "urgent"}, scenario_id=scenario_id
+    )
 
     print("--- Scenario 2: Dangerous overheat + re-plan attempt ---")
     planner_mode = LIVE_PLANNER_MODE_LABEL if USE_LIVE_OPENAI else "scripted"
@@ -210,11 +222,17 @@ def run_overheat_replan_scenario() -> None:
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario(scenario_id, "PKG-200", result)
+    print_evaluator_report("Scenario 2: Overheat with Replan", eval_summary)
+
 
 def run_low_battery_scenario() -> None:
+    scenario_id = "scenario-3"
     gateway = WarehouseGateway()
     gateway.update_battery(10)
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -228,7 +246,9 @@ def run_low_battery_scenario() -> None:
             ]
         )
 
-    result = agent.propose_and_execute("PKG-300", {"priority": "normal"})
+    result = agent.propose_and_execute(
+        "PKG-300", {"priority": "normal"}, scenario_id=scenario_id
+    )
 
     print("--- Scenario 3: BatteryMin violation ---")
     print("Expected: Blocked because battery is below 20% threshold.")
@@ -238,11 +258,17 @@ def run_low_battery_scenario() -> None:
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
 
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario(scenario_id, "PKG-300", result)
+    print_evaluator_report("Scenario 3: Low Battery", eval_summary)
+
 
 def run_max_load_scenario() -> None:
+    scenario_id = "scenario-4"
     gateway = WarehouseGateway()
     gateway.update_belt_load(160.0)
     agent = SorterAgent(gateway)
+    evaluator = SilverAiEvaluator()
 
     if not USE_LIVE_OPENAI:
         agent._planner_request = _planner_from_sequence(
@@ -256,7 +282,9 @@ def run_max_load_scenario() -> None:
             ]
         )
 
-    result = agent.propose_and_execute("PKG-400", {"size": "large"})
+    result = agent.propose_and_execute(
+        "PKG-400", {"size": "large"}, scenario_id=scenario_id
+    )
 
     print("--- Scenario 4: MaxLoad violation ---")
     print("Expected: Blocked because belt_load exceeds MaxLoad threshold.")
@@ -265,6 +293,10 @@ def run_max_load_scenario() -> None:
     _print_result_summary("Scenario 4 Result", result)
     if USE_LIVE_OPENAI:
         _print_planner_trace(agent)
+
+    # Evaluate with Phoenix
+    eval_summary = evaluator.evaluate_scenario(scenario_id, "PKG-400", result)
+    print_evaluator_report("Scenario 4: MaxLoad Violation", eval_summary)
 
 
 def run_demo() -> None:

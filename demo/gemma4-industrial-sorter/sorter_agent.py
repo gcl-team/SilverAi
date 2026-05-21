@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any, Dict, List, cast
 
+from phoenix_trace import get_phoenix_tracer
 from planner_client import PlannerClient
 from sorter_rules import MaxLoad, StateGate
 
 from silver_ai import rules
-from silver_ai.core import guard
+from silver_ai.core import guard, guard_trace_context
 
 
 class SorterAgent:
@@ -14,6 +16,16 @@ class SorterAgent:
         self.gateway = gateway
         self.state = gateway.state
         self.planner = PlannerClient()
+
+        # Inject Phoenix tracer into core guard if tracing is enabled
+        try:
+            from silver_ai.core import set_guard_tracer
+
+            tracer = get_phoenix_tracer()
+            if tracer.enabled:
+                set_guard_tracer(tracer)
+        except (ImportError, AttributeError):
+            pass
 
     @property
     def planner_trace_log(self) -> List[Dict[str, Any]]:
@@ -40,26 +52,29 @@ class SorterAgent:
         package_id: str,
         route: str,
         package_weight: float,
+        scenario_id: str | None = None,
+        attempt_index: int = 1,
     ) -> Dict[str, Any]:
-        try:
-            current_load = float(self.state.get("belt_load", 0.0))
-        except (TypeError, ValueError, OverflowError):
-            return {
-                "status": "error",
-                "reason": "Belt overload: invalid telemetry for belt_load.",
-                "suggestion": (
-                    "Restore valid numeric belt_load telemetry before retrying."
-                ),
-                "dry_run": False,
-            }
-        self.state["projected_belt_load"] = current_load + float(package_weight)
-        try:
-            return cast(
-                Dict[str, Any],
-                self._execute_guarded(package_id, route, package_weight),
-            )
-        finally:
-            self.state.pop("projected_belt_load", None)
+        with guard_trace_context(scenario_id, package_id, attempt_index):
+            try:
+                current_load = float(self.state.get("belt_load", 0.0))
+            except (TypeError, ValueError, OverflowError):
+                return {
+                    "status": "error",
+                    "reason": "Belt overload: invalid telemetry for belt_load.",
+                    "suggestion": (
+                        "Restore valid numeric belt_load telemetry before retrying."
+                    ),
+                    "dry_run": False,
+                }
+            self.state["projected_belt_load"] = current_load + float(package_weight)
+            try:
+                return cast(
+                    Dict[str, Any],
+                    self._execute_guarded(package_id, route, package_weight),
+                )
+            finally:
+                self.state.pop("projected_belt_load", None)
 
     @guard(
         rules=[
@@ -84,13 +99,32 @@ class SorterAgent:
         self,
         package_id: str,
         package_metadata: Dict[str, Any],
+        scenario_id: str | None = None,
     ) -> Dict[str, Any]:
+        # Generate scenario_id if not provided
+        if scenario_id is None:
+            scenario_id = str(uuid.uuid4())
+
+        tracer = get_phoenix_tracer()
+
         prompt = (
             f"Package id: {package_id}. "
             f"Metadata: {self._safe_json_dumps(package_metadata)}. "
             "Choose a safe sorting route."
         )
         planned = self._planner_request(prompt)
+
+        with guard_trace_context(scenario_id, package_id, 1):
+            # Emit planner event for first attempt
+            tracer.emit_planner_event(
+                scenario_id=scenario_id,
+                package_id=package_id,
+                attempt_index=1,
+                planner_input=prompt,
+                planner_response=planned,
+                gateway_snapshot=self.gateway.snapshot(),
+            )
+
         if planned.get("status") != "ok":
             return planned
 
@@ -98,6 +132,8 @@ class SorterAgent:
             package_id,
             planned["route"],
             float(planned["package_weight"]),
+            scenario_id=scenario_id,
+            attempt_index=1,
         )
 
         if result.get("status") != "error":
@@ -115,6 +151,18 @@ class SorterAgent:
         )
 
         replanned = self._planner_request(feedback_prompt)
+
+        with guard_trace_context(scenario_id, package_id, 2):
+            # Emit planner event for replan attempt
+            tracer.emit_planner_event(
+                scenario_id=scenario_id,
+                package_id=package_id,
+                attempt_index=2,
+                planner_input=feedback_prompt,
+                planner_response=replanned,
+                gateway_snapshot=self.gateway.snapshot(),
+            )
+
         if replanned.get("status") != "ok":
             return {
                 "status": "blocked",
@@ -128,6 +176,8 @@ class SorterAgent:
             package_id,
             replanned["route"],
             float(replanned["package_weight"]),
+            scenario_id=scenario_id,
+            attempt_index=2,
         )
         final_status = "success" if retry_result.get("status") != "error" else "blocked"
         response = {

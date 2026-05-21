@@ -1,11 +1,14 @@
+import contextvars
 import functools
 import logging
+from contextlib import contextmanager
 from typing import (
     Any,
     Callable,
     Dict,
     List,
     Literal,
+    Optional,
     ParamSpec,
     Protocol,
     TypedDict,
@@ -17,6 +20,76 @@ from typing import (
 )
 
 logger = logging.getLogger(__name__)
+
+_REDACTED_VALUE = "<redacted>"
+_SENSITIVE_KEY_MARKERS = (
+    "token",
+    "password",
+    "passwd",
+    "secret",
+    "api_key",
+    "apikey",
+    "authorization",
+    "auth",
+    "cookie",
+    "session",
+    "credential",
+    "bearer",
+)
+
+# Optional Phoenix tracing (for demo instrumentation)
+# Uses contextvars for thread-safety and async-safety.
+# Each thread/async context can have its own tracer.
+_guard_tracer_var: contextvars.ContextVar[Optional[Any]] = contextvars.ContextVar(
+    "guard_tracer", default=None
+)
+_guard_trace_scenario_id_var: contextvars.ContextVar[Optional[str]] = (
+    contextvars.ContextVar("guard_trace_scenario_id", default=None)
+)
+_guard_trace_package_id_var: contextvars.ContextVar[Optional[str]] = (
+    contextvars.ContextVar("guard_trace_package_id", default=None)
+)
+_guard_trace_attempt_index_var: contextvars.ContextVar[int] = contextvars.ContextVar(
+    "guard_trace_attempt_index", default=1
+)
+
+
+def set_guard_tracer(tracer: Optional[Any]) -> contextvars.Token[Optional[Any]]:
+    """
+    Inject a Phoenix tracer for guard instrumentation.
+    Called by demo to enable tracing without coupling core to Phoenix.
+    Thread-safe and async-safe via contextvars.ContextVar.
+    """
+    return _guard_tracer_var.set(tracer)
+
+
+@contextmanager
+def guard_tracer_context(tracer: Optional[Any]):
+    """Temporarily override the active guard tracer and restore the previous one."""
+    token = set_guard_tracer(tracer)
+    try:
+        yield
+    finally:
+        _guard_tracer_var.reset(token)
+
+
+@contextmanager
+def guard_trace_context(
+    scenario_id: Optional[str],
+    package_id: Optional[str],
+    attempt_index: int = 1,
+):
+    """Set per-invocation trace context for guard and planner tracing."""
+    scenario_token = _guard_trace_scenario_id_var.set(scenario_id)
+    package_token = _guard_trace_package_id_var.set(package_id)
+    attempt_token = _guard_trace_attempt_index_var.set(attempt_index)
+    try:
+        yield
+    finally:
+        _guard_trace_scenario_id_var.reset(scenario_token)
+        _guard_trace_package_id_var.reset(package_token)
+        _guard_trace_attempt_index_var.reset(attempt_token)
+
 
 DRY_RUN_FLAG = "_silver_ai_dry_run"
 
@@ -66,6 +139,88 @@ class GuardViolationError(Exception):
     """Raised when on_fail='raise' and a rule fails."""
 
     pass
+
+
+def _type_summary(value: Any) -> str:
+    return f"<{type(value).__name__}>"
+
+
+def _is_sensitive_key(key: Any) -> bool:
+    normalized = str(key).strip().lower()
+    return any(marker in normalized for marker in _SENSITIVE_KEY_MARKERS)
+
+
+def _safe_guard_input(func_name: str, args: tuple, kwargs: dict) -> Dict[str, Any]:
+    safe_kwargs: Dict[str, str] = {}
+    for key, value in kwargs.items():
+        if _is_sensitive_key(key):
+            safe_kwargs[str(key)] = _REDACTED_VALUE
+        else:
+            safe_kwargs[str(key)] = _type_summary(value)
+
+    return {
+        "function": func_name,
+        # Positional arguments have no semantic names here; keep type-only
+        # summaries to reduce accidental data leakage in trace payloads.
+        "args": [_type_summary(arg) for arg in args[1:]],
+        "kwargs": safe_kwargs,
+    }
+
+
+def _sanitize_trace_snapshot_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized: Dict[str, Any] = {}
+        for key, item in value.items():
+            string_key = str(key)
+            if _is_sensitive_key(string_key):
+                sanitized[string_key] = _REDACTED_VALUE
+            else:
+                sanitized[string_key] = _sanitize_trace_snapshot_value(item)
+        return sanitized
+
+    if isinstance(value, list):
+        return [_sanitize_trace_snapshot_value(item) for item in value]
+
+    if isinstance(value, tuple):
+        return [_sanitize_trace_snapshot_value(item) for item in value]
+
+    if isinstance(value, set):
+        return [_sanitize_trace_snapshot_value(item) for item in sorted(value, key=str)]
+
+    return value
+
+
+def _safe_gateway_snapshot(
+    instance: Any, current_state: Dict[str, Any]
+) -> Dict[str, Any]:
+    try:
+        gateway = getattr(instance, "gateway", None)
+        if gateway is not None and hasattr(gateway, "snapshot"):
+            snapshot = gateway.snapshot()
+            if isinstance(snapshot, dict):
+                return _sanitize_trace_snapshot_value(snapshot)
+    except Exception:
+        logger.exception("Failed to capture gateway snapshot for tracing")
+    return _sanitize_trace_snapshot_value(current_state.copy())
+
+
+def _resolve_guard_trace_context(
+    instance: Any,
+) -> tuple[Optional[str], Optional[str], int]:
+    scenario_id = _guard_trace_scenario_id_var.get()
+    package_id = _guard_trace_package_id_var.get()
+    attempt_index = _guard_trace_attempt_index_var.get()
+
+    if scenario_id is None:
+        scenario_id = getattr(instance, "_trace_scenario_id", None)
+    if package_id is None:
+        package_id = getattr(instance, "_trace_package_id", None)
+
+    instance_attempt_index = getattr(instance, "_trace_attempt_index", None)
+    if attempt_index == 1 and isinstance(instance_attempt_index, int):
+        attempt_index = instance_attempt_index
+
+    return scenario_id, package_id, attempt_index
 
 
 @overload
@@ -127,11 +282,38 @@ def guard(
                 state_value if isinstance(state_value, dict) else {},
             )
 
+            scenario_id, package_id, attempt_index = _resolve_guard_trace_context(
+                instance
+            )
+
             # --- Rule Validation ---
             for rule in rules:
                 if not rule.check(current_state):
                     msg = rule.violation_message(current_state)
                     logger.warning(f"Guard blocked execution: {msg}")
+
+                    # Emit guard trace event if tracer is available
+                    tracer = _guard_tracer_var.get()
+                    if tracer is not None and scenario_id and package_id:
+                        try:
+                            rule_name = getattr(
+                                rule, "_trace_name", rule.__class__.__name__
+                            )
+                            guard_input = _safe_guard_input(func.__name__, args, kwargs)
+                            tracer.emit_guard_event(
+                                scenario_id=scenario_id,
+                                package_id=package_id,
+                                attempt_index=attempt_index,
+                                guard_input=guard_input,
+                                outcome="blocked",
+                                gateway_snapshot=_safe_gateway_snapshot(
+                                    instance, current_state
+                                ),
+                                failed_rule_name=rule_name,
+                                violation_message=msg,
+                            )
+                        except Exception:
+                            logger.exception("Failed to emit guard trace")
 
                     # ON-FAIL BEHAVIOR: Raise exception if user requested it
                     # This does not affect ZERO-CRASH POLICY below because
@@ -154,6 +336,30 @@ def guard(
             # --- Dry Run Check ---
             # Check if the user activated Dry Run globally or on the instance
             is_dry_run = getattr(instance, DRY_RUN_FLAG, False)
+
+            # Emit trace event after dry-run state is known so observability
+            # consumers do not confuse a skipped execution with a passed one.
+            tracer = _guard_tracer_var.get()
+            if tracer is not None and scenario_id and package_id:
+                try:
+                    evaluated_rules = [
+                        getattr(rule, "_trace_name", rule.__class__.__name__)
+                        for rule in rules
+                    ]
+                    guard_input = _safe_guard_input(func.__name__, args, kwargs)
+                    tracer.emit_guard_event(
+                        scenario_id=scenario_id,
+                        package_id=package_id,
+                        attempt_index=attempt_index,
+                        guard_input=guard_input,
+                        outcome="skipped" if is_dry_run else "passed",
+                        gateway_snapshot=_safe_gateway_snapshot(
+                            instance, current_state
+                        ),
+                        evaluated_rules=evaluated_rules,
+                    )
+                except Exception:
+                    logger.exception("Failed to emit guard trace")
 
             if is_dry_run:
                 logger.info(f"Dry Run: {func.__name__} passed checks but was skipped.")

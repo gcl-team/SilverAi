@@ -36,9 +36,7 @@ class BatteryMin:
                 "Battery critical: invalid telemetry for battery. "
                 f"Required: {self.min_level:g}%."
             )
-        return (
-            f"Battery critical: {current_level:g}%. " f"Required: {self.min_level:g}%."
-        )
+        return f"Battery critical: {current_level:g}%. Required: {self.min_level:g}%."
 
     def suggestion(self) -> str:
         return "Connect device to charger before proceeding."

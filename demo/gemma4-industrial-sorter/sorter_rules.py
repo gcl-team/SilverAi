@@ -19,6 +19,7 @@ class MaxLoad:
 
     def __init__(self, max_load: float):
         self.max_load = float(max_load)
+        self._trace_name = "MaxLoad"
 
     def check(self, state: Dict[str, Any]) -> bool:
         projected = state.get("projected_belt_load")
@@ -64,6 +65,7 @@ class StateGate:
     def __init__(self, key: str, *, max_value: Optional[float] = None):
         self.key = key
         self.max_value = max_value
+        self._trace_name = f"StateGate({key})"
 
     def check(self, state: Dict[str, Any]) -> bool:
         if self.max_value is None:
@@ -84,7 +86,7 @@ class StateGate:
                 f"State gate blocked: invalid telemetry for {self.key}. "
                 f"Limit: {limit:.2f}."
             )
-        return f"State gate blocked: {self.key}={value:.2f}. " f"Limit: {limit:.2f}."
+        return f"State gate blocked: {self.key}={value:.2f}. Limit: {limit:.2f}."
 
     def suggestion(self) -> str:
         return "Wait for telemetry to return to safe limits before retrying."
